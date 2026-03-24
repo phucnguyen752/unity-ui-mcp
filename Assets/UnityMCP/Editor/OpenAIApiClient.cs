@@ -3,28 +3,24 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using UnityMCP.Core;
 
 namespace UnityMCP
 {
-    /// <summary>
-    /// Handles all communication with the Claude API.
-    /// Set your API key in Edit > Project Settings > Unity MCP.
-    /// </summary>
-    public class ClaudeApiClient : IAiApiClient
+    public class OpenAIApiClient : IAiApiClient
     {
-        private const string ApiUrl = "https://api.anthropic.com/v1/messages";
-        private const string Model  = "claude-opus-4-6";
-
+        private const string ApiUrl = "https://api.openai.com/v1/chat/completions";
+        
         private static readonly HttpClient Http = new();
 
         private readonly List<Dictionary<string, object>> _history = new();
 
-        private string ApiKey => McpSettings.instance.ApiKey;
+        private string ApiKey => McpSettings.instance.OpenAIApiKey;
+        private string Model => McpSettings.instance.OpenAIModel;
 
-        // ── Analyze image (Vision) ────────────────────────────
         public async Task<string> AnalyzeImage(Texture2D texture, string prompt)
         {
             var base64 = TextureToBase64(texture);
@@ -42,18 +38,16 @@ namespace UnityMCP
                         {
                             new Dictionary<string, object>
                             {
-                                ["type"] = "image",
-                                ["source"] = new Dictionary<string, object>
-                                {
-                                    ["type"] = "base64",
-                                    ["media_type"] = "image/png",
-                                    ["data"] = base64
-                                }
+                                ["type"] = "text",
+                                ["text"] = prompt
                             },
                             new Dictionary<string, object>
                             {
-                                ["type"] = "text",
-                                ["text"] = prompt
+                                ["type"] = "image_url",
+                                ["image_url"] = new Dictionary<string, object>
+                                {
+                                    ["url"] = $"data:image/png;base64,{base64}"
+                                }
                             }
                         }
                     }
@@ -63,16 +57,24 @@ namespace UnityMCP
             return await PostAsync(body);
         }
 
-        // ── Multi-turn chat ───────────────────────────────────
         public async Task<string> Chat(string userMessage)
         {
+            // If it's the first message, insert system prompt
+            if (_history.Count == 0)
+            {
+                _history.Add(new Dictionary<string, object>
+                {
+                    ["role"] = "system",
+                    ["content"] = SystemPrompt
+                });
+            }
+
             _history.Add(new Dictionary<string, object> { ["role"] = "user", ["content"] = userMessage });
 
             var body = new Dictionary<string, object>
             {
                 ["model"] = Model,
                 ["max_tokens"] = 2048,
-                ["system"] = SystemPrompt,
                 ["messages"] = _history
             };
 
@@ -81,40 +83,49 @@ namespace UnityMCP
             return reply;
         }
 
-        // ── HTTP helper ───────────────────────────────────────
         private async Task<string> PostAsync(object body)
         {
             if (string.IsNullOrEmpty(ApiKey))
-                throw new InvalidOperationException("Claude API key not set. Go to Edit > Project Settings > Unity MCP.");
+                throw new InvalidOperationException("OpenAI API key not set. Go to Edit > Project Settings > Unity MCP.");
 
-            var json    = MiniJson.Serialize(body);
+            var json = MiniJson.Serialize(body);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             using var request = new HttpRequestMessage(HttpMethod.Post, ApiUrl);
-            request.Headers.Add("x-api-key",         ApiKey);
-            request.Headers.Add("anthropic-version", "2023-06-01");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ApiKey);
             request.Content = content;
 
             var response = await Http.SendAsync(request);
-            var raw      = await response.Content.ReadAsStringAsync();
+            var raw = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
                 throw new HttpRequestException($"API error {response.StatusCode}: {raw}");
 
-            // Parse response: { "content": [ { "type": "text", "text": "..." } ] }
             var parsed = MiniJson.DeserializeObject(raw);
-            var contentArr = parsed?.GetArray("content");
-            if (contentArr != null && contentArr.Count > 0)
+            var choices = parsed?.GetArray("choices");
+            if (choices != null && choices.Count > 0)
             {
-                var first = contentArr[0] as Dictionary<string, object>;
-                var text = first?.GetString("text");
-                if (!string.IsNullOrEmpty(text)) return text;
+                var firstChoice = choices[0] as Dictionary<string, object>;
+                var message = firstChoice?.GetObject("message");
+                var text = message?.GetString("content");
+                if (!string.IsNullOrEmpty(text))
+                {
+                    // Clean up markdown block if API wrapped the response in ```json ... ```
+                    text = text.Trim();
+                    if (text.StartsWith("```json"))
+                        text = text.Substring(7);
+                    else if (text.StartsWith("```"))
+                        text = text.Substring(3);
+                    if (text.EndsWith("```"))
+                        text = text.Substring(0, text.Length - 3);
+
+                    return text.Trim();
+                }
             }
 
-            throw new InvalidOperationException("Empty response from Claude.");
+            throw new InvalidOperationException("Empty response from OpenAI.");
         }
 
-        // ── Helpers ───────────────────────────────────────────
         private static string TextureToBase64(Texture2D tex)
         {
             var path = AssetDatabase.GetAssetPath(tex);

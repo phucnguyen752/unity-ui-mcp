@@ -73,9 +73,23 @@ namespace UnityMCP
     {
         public static void Apply(GameObject go, ComponentNode node)
         {
-            // Image color
+            // Image style
             var img = go.GetComponent<Image>();
-            if (img != null) img.color = node.color;
+            if (img != null)
+            {
+                img.color = node.color;
+                if (!string.IsNullOrEmpty(node.spritePath))
+                {
+                    var sprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(node.spritePath);
+                    if (sprite != null)
+                    {
+                        img.sprite = sprite;
+                        img.type = Image.Type.Sliced;
+                        if (node.ppum.HasValue)
+                            img.pixelsPerUnitMultiplier = node.ppum.Value;
+                    }
+                }
+            }
 
             // TMP text
             var tmp = go.GetComponent<TMPro.TextMeshProUGUI>();
@@ -83,6 +97,14 @@ namespace UnityMCP
             {
                 if (!string.IsNullOrEmpty(node.text)) tmp.text = node.text;
                 tmp.fontSize = node.fontSize;
+                tmp.fontStyle = node.fontStyle switch
+                {
+                    FontStyle.Bold          => TMPro.FontStyles.Bold,
+                    FontStyle.Italic        => TMPro.FontStyles.Italic,
+                    FontStyle.BoldAndItalic => TMPro.FontStyles.Bold | TMPro.FontStyles.Italic,
+                    _                       => TMPro.FontStyles.Normal,
+                };
+                tmp.alignment = TMPro.TextAlignmentOptions.Center;
             }
         }
     }
@@ -114,15 +136,33 @@ namespace UnityMCP
             }
         }
 
+        private static TextAnchor ParseChildAlignment(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return TextAnchor.MiddleCenter;
+            return s.ToLowerInvariant().Replace(" ", "") switch
+            {
+                "upperleft"    => TextAnchor.UpperLeft,
+                "uppercenter"  => TextAnchor.UpperCenter,
+                "upperright"   => TextAnchor.UpperRight,
+                "middleleft"   => TextAnchor.MiddleLeft,
+                "middlecenter" => TextAnchor.MiddleCenter,
+                "middleright"  => TextAnchor.MiddleRight,
+                "lowerleft"    => TextAnchor.LowerLeft,
+                "lowercenter"  => TextAnchor.LowerCenter,
+                "lowerright"   => TextAnchor.LowerRight,
+                _              => TextAnchor.MiddleCenter,
+            };
+        }
+
         private static void ApplyHorizontal(GameObject go, ComponentNode node)
         {
             var h = go.AddComponent<HorizontalLayoutGroup>();
-            h.spacing                   = node.spacing;
-            h.childAlignment            = TextAnchor.MiddleCenter;
-            h.childControlWidth         = true;
-            h.childControlHeight        = true;
-            h.childForceExpandWidth     = false;
-            h.childForceExpandHeight    = false;
+            h.spacing                = node.spacing;
+            h.childAlignment         = ParseChildAlignment(node.childAlignment);
+            h.childControlWidth      = node.controlChildWidth  ?? false;
+            h.childControlHeight     = node.controlChildHeight ?? false;
+            h.childForceExpandWidth  = node.forceExpandWidth   ?? false;
+            h.childForceExpandHeight = node.forceExpandHeight  ?? false;
             h.padding = ToPadding(node.padding);
         }
 
@@ -130,11 +170,11 @@ namespace UnityMCP
         {
             var v = go.AddComponent<VerticalLayoutGroup>();
             v.spacing                = node.spacing;
-            v.childAlignment         = TextAnchor.UpperCenter;
-            v.childControlWidth      = true;
-            v.childControlHeight     = true;
-            v.childForceExpandWidth  = true;
-            v.childForceExpandHeight = false;
+            v.childAlignment         = ParseChildAlignment(node.childAlignment);
+            v.childControlWidth      = node.controlChildWidth  ?? true;
+            v.childControlHeight     = node.controlChildHeight ?? true;
+            v.childForceExpandWidth  = node.forceExpandWidth   ?? true;
+            v.childForceExpandHeight = node.forceExpandHeight  ?? false;
             v.padding = ToPadding(node.padding);
         }
 

@@ -32,6 +32,7 @@ namespace UnityMCP.Core
                     "save_prefab"         => SavePrefabHandler.Execute(MiniJson.DeserializeTo<SavePrefabParams>(paramsJson)),
                     "query_ui_hierarchy"  => QueryHierarchyHandler.Execute(MiniJson.DeserializeTo<QueryHierarchyParams>(paramsJson)),
                     "get_editor_config"   => GetEditorConfigHandler.Execute(),
+                    "build_ui_from_json"  => BuildUiFromJsonHandler.Execute(MiniJson.DeserializeTo<BuildUiFromJsonParams>(paramsJson)),
                     _                     => throw new NotSupportedException($"Unknown tool: '{tool}'")
                 };
 

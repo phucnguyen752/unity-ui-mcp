@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEngine;
 
 namespace UnityMCP.Handlers
@@ -9,6 +10,9 @@ namespace UnityMCP.Handlers
             int tw = MCPBridgeWindow.TargetWidth;
             int th = MCPBridgeWindow.TargetHeight;
             var gameViewSize = GetGameViewSize();
+
+            // Clear vision_json.json to prevent AI from copying old layout
+            ClearVisionJson();
 
             return new
             {
@@ -22,8 +26,17 @@ namespace UnityMCP.Handlers
                     width = (int)gameViewSize.x,
                     height = (int)gameViewSize.y
                 },
-                sizing_rule = "ALL sizes MUST be analyzed from the reference image. sizeDelta = target_screen × measured_ratio%. DO NOT use any default/example values. Measure each element independently."
+                vision_json_path = BuildUiFromJsonHandler.VisionJsonPath,
+                sizing_rule = "ALL sizes MUST be analyzed from the reference image. sizeDelta = target_screen × measured_ratio%. DO NOT use any default/example values. Measure each element independently.",
+                workflow = "1) Write JSON layout to vision_json_path  2) Call build_ui_from_json"
             };
+        }
+
+        private static void ClearVisionJson()
+        {
+            var fullPath = Path.Combine(Application.dataPath, "..", BuildUiFromJsonHandler.VisionJsonPath);
+            if (File.Exists(fullPath))
+                File.WriteAllText(fullPath, "{}");
         }
 
         private static Vector2 GetGameViewSize()

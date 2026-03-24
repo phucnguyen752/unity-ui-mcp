@@ -1,0 +1,89 @@
+{
+  "name": "RemoveAdsPopup",
+  "type": "Image",
+  "anchor": "stretch-full",
+  "color": "#00000099",
+  "children": [
+    {
+      "name": "DialogPanel",
+      "type": "Panel",
+      "anchor": "middle-center",
+      "size": { "width": 850, "height": 1036 },
+      "color": "#FFFFFF",
+      "spritePath": "Assets/UnityMCP/Sprites/circle-512.png",
+      "ppum": 6.25,
+      "children": [
+        {
+          "name": "BannerRed",
+          "type": "Panel",
+          "anchor": "top-center",
+          "size": { "width": 648, "height": 80 },
+          "position": { "x": 0, "y": 15 },
+          "color": "#E8566A",
+          "spritePath": "Assets/UnityMCP/Sprites/circle-512.png",
+          "ppum": 5.0,
+          "children": [
+            {
+              "name": "TxtTitle",
+              "type": "Text",
+              "anchor": "stretch-full",
+              "text": "REMOVE ADS",
+              "fontSize": 42,
+              "fontStyle": "Bold",
+              "color": "#FFFFFF",
+              "textAlignment": "Center"
+            }
+          ]
+        },
+        {
+          "name": "BtnClose",
+          "type": "Button",
+          "anchor": "top-right",
+          "size": { "width": 70, "height": 70 },
+          "position": { "x": -10, "y": -10 },
+          "color": "#D4768A",
+          "spritePath": "Assets/UnityMCP/Sprites/circle-512.png",
+          "ppum": 1.0,
+          "text": "✕",
+          "fontSize": 30,
+          "fontStyle": "Bold",
+          "textColor": "#FFFFFF"
+        },
+        {
+          "name": "IconAds",
+          "type": "Image",
+          "anchor": "middle-center",
+          "size": { "width": 260, "height": 260 },
+          "position": { "x": 0, "y": 100 },
+          "color": "#DDDDDD"
+        },
+        {
+          "name": "TxtDescription",
+          "type": "Text",
+          "anchor": "middle-center",
+          "size": { "width": 540, "height": 130 },
+          "position": { "x": 0, "y": -140 },
+          "text": "Upgrade to an\nAd-free experience.",
+          "fontSize": 36,
+          "fontStyle": "Bold",
+          "color": "#1A3A5C",
+          "textAlignment": "Center"
+        },
+        {
+          "name": "BtnBuy",
+          "type": "Button",
+          "anchor": "bottom-center",
+          "size": { "width": 575, "height": 145 },
+          "position": { "x": 0, "y": 160 },
+          "color": "#6CC88A",
+          "spritePath": "Assets/UnityMCP/Sprites/circle-512.png",
+          "ppum": 3.25,
+          "text": "Đ999.999",
+          "fontSize": 40,
+          "fontStyle": "Bold",
+          "textColor": "#FFFFFF"
+        }
+      ]
+    }
+  ]
+}

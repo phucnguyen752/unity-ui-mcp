@@ -29,11 +29,19 @@ namespace UnityMCP
     }
 
     [System.Serializable]
+    public class PositionData
+    {
+        public float x = 0;
+        public float y = 0;
+    }
+
+    [System.Serializable]
     public class ComponentNode
     {
         public string          name      = "Element";
         public UiComponentType type      = UiComponentType.Panel;
         public AnchorPreset    anchor    = AnchorPreset.MiddleCenter;
+        public PositionData    position  = new();
         public LayoutType      layout    = LayoutType.None;
         public float           spacing   = 8;
         public PaddingData     padding   = new();
@@ -42,12 +50,21 @@ namespace UnityMCP
         public string          text      = "";
         public int             fontSize  = 16;
         public FontStyle       fontStyle = FontStyle.Normal;
+        public string          spritePath = "";
+        public float?          ppum      = null;
         public ComponentNode[] children  = System.Array.Empty<ComponentNode>();
 
         // Grid-layout extras
         public int   gridColumns   = 2;
         public float cellWidth     = 100;
         public float cellHeight    = 100;
+
+        // Layout group control
+        public bool? controlChildWidth;
+        public bool? controlChildHeight;
+        public bool? forceExpandWidth;
+        public bool? forceExpandHeight;
+        public string childAlignment;
     }
 
     // ── Parser ────────────────────────────────────────────────
@@ -69,17 +86,25 @@ namespace UnityMCP
                 name      = obj.GetString("name", "Element"),
                 type      = ParseEnum<UiComponentType>(obj.GetString("type"), UiComponentType.Panel),
                 anchor    = ParseAnchor(obj.GetString("anchor")),
+                position  = ParsePosition(obj.GetObject("position")),
                 layout    = ParseEnum<LayoutType>(obj.GetString("layout"), LayoutType.None),
                 spacing   = obj.GetFloat("spacing", 8f),
                 text      = obj.GetString("text"),
                 fontSize  = obj.GetInt("fontSize", 16),
                 fontStyle = ParseFontStyle(obj.GetString("fontStyle")),
                 color     = ParseColor(obj.GetString("color")),
+                spritePath= obj.GetString("spritePath", ""),
+                ppum      = obj.ContainsKey("ppum") ? obj.GetFloat("ppum") : null,
                 padding   = ParsePadding(obj.GetObject("padding")),
                 size      = ParseSize(obj.GetObject("size")),
                 gridColumns = obj.GetInt("gridColumns", 2),
                 cellWidth   = obj.GetFloat("cellWidth", 100f),
                 cellHeight  = obj.GetFloat("cellHeight", 100f),
+                controlChildWidth  = obj.ContainsKey("controlChildWidth")  ? obj.GetBool("controlChildWidth")  : null,
+                controlChildHeight = obj.ContainsKey("controlChildHeight") ? obj.GetBool("controlChildHeight") : null,
+                forceExpandWidth   = obj.ContainsKey("forceExpandWidth")   ? obj.GetBool("forceExpandWidth")   : null,
+                forceExpandHeight  = obj.ContainsKey("forceExpandHeight")  ? obj.GetBool("forceExpandHeight")  : null,
+                childAlignment     = obj.GetString("childAlignment"),
             };
 
             var childArray = obj.GetArray("children");
@@ -136,6 +161,13 @@ namespace UnityMCP
             {
                 width  = obj.GetFloat("width", -1),
                 height = obj.GetFloat("height", -1),
+            };
+
+        private static PositionData ParsePosition(Dictionary<string, object> obj) =>
+            obj == null ? new PositionData() : new PositionData
+            {
+                x = obj.GetFloat("x", 0),
+                y = obj.GetFloat("y", 0),
             };
 
         private static FontStyle ParseFontStyle(string s) => s?.ToLower() switch

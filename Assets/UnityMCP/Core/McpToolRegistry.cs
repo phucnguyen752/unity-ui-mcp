@@ -20,7 +20,8 @@ namespace UnityMCP.Core
                 SetUiStyleTool(),
                 SetCanvasScalerTool(),
                 SavePrefabTool(),
-                QueryHierarchyTool()
+                QueryHierarchyTool(),
+                BuildUiFromJsonTool()
             };
         }
 
@@ -241,6 +242,25 @@ namespace UnityMCP.Core
                     ["depth"] = Prop("integer", "Số cấp hierarchy trả về", 5)
                 },
                 ["required"] = Enum("prefab_id")
+            }
+        };
+
+        private static Dictionary<string, object> BuildUiFromJsonTool() => new()
+        {
+            ["name"] = "build_ui_from_json",
+            ["description"] = "Build complete UI prefab from JSON layout. Reads JSON from Assets/UnityMCP/vision_json.json (written by AI in previous step), builds the full hierarchy, and auto-saves as .prefab. Call get_editor_config first (it clears old JSON), then write new JSON to vision_json.json, then call this tool.",
+            ["inputSchema"] = new Dictionary<string, object>
+            {
+                ["type"] = "object",
+                ["properties"] = new Dictionary<string, object>
+                {
+                    ["prefab_name"] = Prop("string", "Name for the saved prefab (e.g. RemoveAdsPopup)"),
+                    ["save_path"] = Prop("string", "Folder to save .prefab file (e.g. Assets/UI/Prefabs/)", "Assets/UI/Prefabs/"),
+                    ["json_layout"] = Prop("string", "Optional: inline JSON string. If empty, reads from Assets/UnityMCP/vision_json.json"),
+                    ["target_width"] = Prop("number", "Design width (e.g. 1080)", 1080),
+                    ["target_height"] = Prop("number", "Design height (e.g. 1920)", 1920)
+                },
+                ["required"] = Enum("prefab_name")
             }
         };
     }

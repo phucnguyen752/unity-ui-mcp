@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace UnityMCP
@@ -11,8 +12,13 @@ namespace UnityMCP
     public class ToolDispatcher
     {
         private GameObject _rootGo;
+        private string _savedPrefabPath;
 
-        public Task BuildAsync(ComponentNode tree, Vector2 targetResolution)
+        /// <summary>Path of the saved prefab after BuildAsync completes (null if not saved).</summary>
+        public string SavedPrefabPath => _savedPrefabPath;
+
+        public Task BuildAsync(ComponentNode tree, Vector2 targetResolution,
+                               string savePath = null, string prefabName = null)
         {
             var tcs = new TaskCompletionSource<bool>();
 
@@ -27,22 +33,49 @@ namespace UnityMCP
                     _rootGo = CreateCanvas(tree.name, targetResolution);
                     BuildNode(tree, _rootGo.transform, targetResolution);
 
-                    // Generate C# references file
-                    UIReferencesGenerator.Generate(_rootGo, tree);
-
                     Undo.CollapseUndoOperations(undoGroup);
-                    Selection.activeGameObject = _rootGo;
-                    EditorGUIUtility.PingObject(_rootGo);
+
+                    // Auto-save as prefab
+                    if (!string.IsNullOrEmpty(savePath))
+                    {
+                        var name = string.IsNullOrEmpty(prefabName) ? tree.name : prefabName;
+                        _rootGo.name = name;
+                        _savedPrefabPath = SaveAsPrefab(_rootGo, savePath, name);
+                    }
+                    else
+                    {
+                        Selection.activeGameObject = _rootGo;
+                        EditorGUIUtility.PingObject(_rootGo);
+                    }
 
                     tcs.SetResult(true);
                 }
                 catch (System.Exception e)
                 {
+                    Debug.LogError($"[UnityMCP] Error building UI: {e}");
                     tcs.SetException(e);
                 }
             };
 
             return tcs.Task;
+        }
+
+        private static string SaveAsPrefab(GameObject root, string folder, string name)
+        {
+            folder = folder.TrimEnd('/');
+            if (!AssetDatabase.IsValidFolder(folder))
+                Directory.CreateDirectory(Path.Combine(Application.dataPath, "..", folder));
+
+            var assetPath = $"{folder}/{name}.prefab";
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, assetPath);
+            Object.DestroyImmediate(root);
+
+            // Ping the saved prefab
+            Selection.activeObject = prefab;
+            EditorGUIUtility.PingObject(prefab);
+
+            Debug.Log($"[UnityMCP] Prefab saved: {assetPath}");
+            return assetPath;
         }
 
         // ── Recursive node builder ────────────────────────────
@@ -53,6 +86,14 @@ namespace UnityMCP
             SetAnchorTool.Apply(go, node.anchor, resolution);
             SetSizeTool.Apply(go, node.size, resolution);
             SetStyleTool.Apply(go, node);
+
+            // Apply anchoredPosition
+            if (node.position != null && (node.position.x != 0 || node.position.y != 0))
+            {
+                var rt = go.GetComponent<RectTransform>();
+                if (rt != null)
+                    rt.anchoredPosition = new Vector2(node.position.x, node.position.y);
+            }
 
             if (node.layout != LayoutType.None)
                 SetLayoutTool.Apply(go, node);

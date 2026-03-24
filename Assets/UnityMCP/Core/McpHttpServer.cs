@@ -119,7 +119,7 @@ namespace UnityMCP.Core
             {
                 if (method == "GET" && path == "/sse")
                     await HandleSseConnection(ctx, ct);
-                else if (method == "POST" && path.StartsWith("/messages"))
+                else if (method == "POST" && path.StartsWith("/message"))
                     await HandleMessage(ctx);
                 else
                 {
@@ -160,7 +160,7 @@ namespace UnityMCP.Core
 
             Debug.Log($"[UnityMCP] Client connected (session: {sessionId[..8]}...)");
 
-            await WriteSseEvent(writer, "endpoint", $"/messages?sessionId={sessionId}");
+            await WriteSseEvent(writer, "endpoint", $"/message?sessionId={sessionId}");
 
             try
             {
@@ -195,11 +195,25 @@ namespace UnityMCP.Core
 
             if (!_sessions.TryGetValue(sessionId, out var session))
             {
-                ctx.Response.StatusCode = 404;
-                var errBytes = Encoding.UTF8.GetBytes("{\"error\":\"Session not found\"}");
-                ctx.Response.OutputStream.Write(errBytes, 0, errBytes.Length);
-                ctx.Response.Close();
-                return;
+                if (_sessions.Count > 0)
+                {
+                    // Fallback cực mạnh cho mọi lỗi parse session id từ client
+                    var enumerator = _sessions.GetEnumerator();
+                    if (enumerator.MoveNext())
+                    {
+                        session = enumerator.Current.Value;
+                        sessionId = session.Id;
+                    }
+                }
+                
+                if (session == null)
+                {
+                    ctx.Response.StatusCode = 404;
+                    var errBytes = Encoding.UTF8.GetBytes("{\"error\":\"UNITY_SERVER_SESSION_MISSING\"}");
+                    ctx.Response.OutputStream.Write(errBytes, 0, errBytes.Length);
+                    ctx.Response.Close();
+                    return;
+                }
             }
 
             string body;
@@ -229,6 +243,25 @@ namespace UnityMCP.Core
             if (method == "tools/list")
             {
                 var result = BuildToolsListResponse(id);
+                await SendSseMessage(session, result);
+                ctx.Response.StatusCode = 202;
+                ctx.Response.Close();
+                return;
+            }
+
+            if (method == "prompts/list")
+            {
+                var result = BuildPromptsListResponse(id);
+                await SendSseMessage(session, result);
+                ctx.Response.StatusCode = 202;
+                ctx.Response.Close();
+                return;
+            }
+
+            if (method == "prompts/get")
+            {
+                var promptName = msg.GetObject("params")?.GetString("name");
+                var result = BuildPromptsGetResponse(id, promptName);
                 await SendSseMessage(session, result);
                 ctx.Response.StatusCode = 202;
                 ctx.Response.Close();
@@ -293,6 +326,10 @@ namespace UnityMCP.Core
                         ["tools"] = new Dictionary<string, object>
                         {
                             ["listChanged"] = false
+                        },
+                        ["prompts"] = new Dictionary<string, object>
+                        {
+                            ["listChanged"] = false
                         }
                     },
                     ["serverInfo"] = new Dictionary<string, object>
@@ -314,6 +351,63 @@ namespace UnityMCP.Core
                 ["result"] = new Dictionary<string, object>
                 {
                     ["tools"] = tools
+                }
+            };
+        }
+
+        private static Dictionary<string, object> BuildPromptsListResponse(object id)
+        {
+            return new Dictionary<string, object>
+            {
+                ["jsonrpc"] = "2.0",
+                ["id"] = id,
+                ["result"] = new Dictionary<string, object>
+                {
+                    ["prompts"] = new List<object>
+                    {
+                        new Dictionary<string, object>
+                        {
+                            ["name"] = "unity_ui_expert_skill",
+                            ["description"] = "Bắt buộc đọc prompt này để hiểu rules, workflow, và JSON schema khi làm việc với Unity UI MCP.",
+                            ["arguments"] = new List<object>()
+                        }
+                    }
+                }
+            };
+        }
+
+        private static Dictionary<string, object> BuildPromptsGetResponse(object id, string promptName)
+        {
+            string content;
+            if (promptName != "unity_ui_expert_skill")
+            {
+                content = $"Error: Unknown prompt '{promptName}'";
+            }
+            else
+            {
+                var ruleFile = MCPBridgeWindow.GetRulesSourceFile();
+                content = File.Exists(ruleFile) ? File.ReadAllText(ruleFile) : "Error: Cannot find AI_SKILL.md in UnityMCP package.";
+            }
+
+            return new Dictionary<string, object>
+            {
+                ["jsonrpc"] = "2.0",
+                ["id"] = id,
+                ["result"] = new Dictionary<string, object>
+                {
+                    ["description"] = "Quy tắc dựng UI component cho Unity MCP",
+                    ["messages"] = new List<object>
+                    {
+                        new Dictionary<string, object>
+                        {
+                            ["role"] = "user",
+                            ["content"] = new Dictionary<string, object>
+                            {
+                                ["type"] = "text",
+                                ["text"] = content
+                            }
+                        }
+                    }
                 }
             };
         }

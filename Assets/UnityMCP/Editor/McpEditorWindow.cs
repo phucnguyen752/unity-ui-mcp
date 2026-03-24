@@ -15,7 +15,7 @@ namespace UnityMCP
 
         private readonly List<ChatMessage> _messages = new();
 
-        private ClaudeApiClient   _apiClient;
+        private IAiApiClient      _apiClient;
         private ToolDispatcher    _dispatcher;
 
         // ── Resolution presets ────────────────────────────────
@@ -39,7 +39,20 @@ namespace UnityMCP
 
         private void OnEnable()
         {
-            _apiClient  = new ClaudeApiClient();
+            var provider = McpSettings.instance.Provider;
+            switch (provider)
+            {
+                case McpSettings.AiProviderType.OpenAI:
+                    _apiClient = new OpenAIApiClient();
+                    break;
+                case McpSettings.AiProviderType.Gemini:
+                    _apiClient = new GeminiApiClient();
+                    break;
+                case McpSettings.AiProviderType.Claude:
+                default:
+                    _apiClient = new ClaudeApiClient();
+                    break;
+            }
             _dispatcher = new ToolDispatcher();
         }
 
@@ -47,6 +60,7 @@ namespace UnityMCP
         private void OnGUI()
         {
             DrawHeader();
+            DrawProviderSelector();
             DrawImageUpload();
             DrawResolutionSelector();
             DrawMultiscreenOptions();
@@ -60,6 +74,38 @@ namespace UnityMCP
             EditorGUILayout.Space(8);
             GUILayout.Label("MCP UI Builder", EditorStyles.boldLabel);
             EditorGUILayout.LabelField("Upload a fakescreen, then describe any adjustments.", EditorStyles.miniLabel);
+            EditorGUILayout.Space(4);
+        }
+
+        private void DrawProviderSelector()
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Label("AI Provider:", GUILayout.Width(100));
+            var currentProvider = McpSettings.instance.Provider;
+            
+            EditorGUI.BeginChangeCheck();
+            var newProvider = (McpSettings.AiProviderType)EditorGUILayout.EnumPopup(currentProvider);
+            if (EditorGUI.EndChangeCheck())
+            {
+                McpSettings.instance.Provider = newProvider;
+                EditorUtility.SetDirty(McpSettings.instance);
+                
+                // Re-initialize client
+                switch (newProvider)
+                {
+                    case McpSettings.AiProviderType.OpenAI:
+                        _apiClient = new OpenAIApiClient();
+                        break;
+                    case McpSettings.AiProviderType.Gemini:
+                        _apiClient = new GeminiApiClient();
+                        break;
+                    case McpSettings.AiProviderType.Claude:
+                    default:
+                        _apiClient = new ClaudeApiClient();
+                        break;
+                }
+            }
+            EditorGUILayout.EndHorizontal();
             EditorGUILayout.Space(4);
         }
 

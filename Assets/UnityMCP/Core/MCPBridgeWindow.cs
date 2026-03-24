@@ -26,7 +26,9 @@ namespace UnityMCP
         public static int TargetWidth  { get; private set; } = 1080;
         public static int TargetHeight { get; private set; } = 1920;
 
-        // ── Claude Rules status ─────────────────────────────────────────
+        // ── AI Skill status ─────────────────────────────────────────────
+        public enum IdeType { Cursor, Windsurf, ClaudeDesktop, McpPrompt }
+        private IdeType _selectedIde = IdeType.Cursor;
         private bool _rulesInstalled;
 
         [MenuItem("Window/MCP Bridge")]
@@ -42,7 +44,7 @@ namespace UnityMCP
             _targetHeight = EditorPrefs.GetInt(PREF_TARGET_HEIGHT, 1920);
             TargetWidth  = _targetWidth;
             TargetHeight = _targetHeight;
-            _rulesInstalled = CheckRulesInstalled();
+            _rulesInstalled = CheckRulesInstalled(_selectedIde);
         }
 
         private void OnGUI()
@@ -108,22 +110,35 @@ namespace UnityMCP
 
             GUILayout.Space(8);
 
-            // ── Claude Rules Setup ──────────────────────────────────────
-            DrawClaudeRulesSection();
+            // ── AI Skill / Rules Setup ──────────────────────────────────
+            DrawSkillSetupSection();
 
             GUILayout.Space(8);
 
             // Config hint
-            EditorGUILayout.HelpBox(
-                "Claude Desktop config:\n" +
+            string configJson = 
                 "{\n" +
                 "  \"mcpServers\": {\n" +
                 "    \"unity-ui-mcp\": {\n" +
-                $"      \"url\": \"http://localhost:{McpHttpServer.Port}/sse\"\n" +
+                $"      \"serverUrl\": \"http://localhost:{McpHttpServer.Port}/sse\"\n" +
                 "    }\n" +
                 "  }\n" +
-                "}",
-                MessageType.Info);
+                "}";
+
+            EditorGUILayout.HelpBox($"Config:\n{configJson}", MessageType.Info);
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Copy JSON Config"))
+            {
+                EditorGUIUtility.systemCopyBuffer = configJson;
+                AppendLog("MCP JSON Config copied to clipboard.");
+            }
+            if (GUILayout.Button("Copy SSE URL"))
+            {
+                EditorGUIUtility.systemCopyBuffer = $"http://localhost:{McpHttpServer.Port}/sse";
+                AppendLog("MCP SSE URL copied to clipboard.");
+            }
+            EditorGUILayout.EndHorizontal();
 
             GUILayout.Space(8);
             GUILayout.Label("Log", EditorStyles.boldLabel);
@@ -138,104 +153,113 @@ namespace UnityMCP
             Repaint();
         }
 
-        // ── Claude Rules ────────────────────────────────────────────────
+        // ── AI Skill Setup ──────────────────────────────────────────────
 
-        private void DrawClaudeRulesSection()
+        private void DrawSkillSetupSection()
         {
-            GUILayout.Label("Claude Rules", EditorStyles.boldLabel);
+            GUILayout.Label("AI Skill / Rules Setup", EditorStyles.boldLabel);
+            
+            _selectedIde = (IdeType)EditorGUILayout.EnumPopup("Target IDE:", _selectedIde);
 
-            _rulesInstalled = CheckRulesInstalled();
+            if (_selectedIde == IdeType.McpPrompt)
+            {
+                EditorGUILayout.HelpBox("Sử dụng giao thức MCP Prompts (unity_ui_expert_skill). Không cần copy file vật lý. IDE sẽ tự yêu cầu skill này thông qua MCP (nếu IDE hỗ trợ).", MessageType.Info);
+                return;
+            }
+
+            _rulesInstalled = CheckRulesInstalled(_selectedIde);
 
             if (_rulesInstalled)
             {
                 var oldBg = GUI.color;
                 GUI.color = Color.green;
-                GUILayout.Label("✓ Rules đã cài đặt", EditorStyles.label);
+                GUILayout.Label($"✓ Rules đã cài đặt cho {_selectedIde}", EditorStyles.label);
                 GUI.color = oldBg;
 
                 EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Button("Update Rules", EditorStyles.miniButtonLeft))
                 {
-                    InstallRules();
-                    AppendLog("Claude rules updated.");
+                    InstallRules(_selectedIde);
+                    AppendLog($"{_selectedIde} rules updated.");
                 }
                 if (GUILayout.Button("Remove Rules", EditorStyles.miniButtonRight))
                 {
-                    RemoveRules();
-                    AppendLog("Claude rules removed.");
+                    RemoveRules(_selectedIde);
+                    AppendLog($"{_selectedIde} rules removed.");
                 }
                 EditorGUILayout.EndHorizontal();
             }
             else
             {
                 EditorGUILayout.HelpBox(
-                    "Claude Code cần rules để tạo UI chính xác (kích thước, bo góc, workflow).\nBấm Install để tự động cài đặt.",
+                    $"Cần cài đặt file luật ({GetDestFileName(_selectedIde)}) để AI sinh UI chính xác.",
                     MessageType.Warning);
 
-                if (GUILayout.Button("Install Claude Rules", GUILayout.Height(28)))
+                if (GUILayout.Button($"Install {_selectedIde} Rules", GUILayout.Height(28)))
                 {
-                    InstallRules();
-                    AppendLog("Claude rules installed.");
+                    InstallRules(_selectedIde);
+                    AppendLog($"{_selectedIde} rules installed.");
                 }
             }
         }
 
-        private static string GetProjectRoot()
+        private static string GetDestFileName(IdeType ide)
         {
-            // Application.dataPath = ".../Assets" → parent = project root
-            return Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            return ide switch
+            {
+                IdeType.Cursor => ".cursorrules",
+                IdeType.Windsurf => ".windsurfrules",
+                IdeType.ClaudeDesktop => ".claude/rules/unity-ui-mcp.md",
+                _ => ""
+            };
         }
 
-        private static string GetRulesDestDir()
+        private static string GetRulesDestFile(IdeType ide)
         {
-            return Path.Combine(GetProjectRoot(), ".claude", "rules");
+            var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            return Path.Combine(projectRoot, GetDestFileName(ide));
         }
 
-        private static string GetRulesDestFile()
+        public static string GetRulesSourceFile()
         {
-            return Path.Combine(GetRulesDestDir(), "unity-ui-mcp.md");
-        }
-
-        private static string GetRulesSourceFile()
-        {
-            // Tìm CLAUDE.md trong package UnityMCP
-            var guids = AssetDatabase.FindAssets("CLAUDE t:TextAsset", new[] { "Assets/UnityMCP" });
+            var guids = AssetDatabase.FindAssets("AI_SKILL t:TextAsset", new[] { "Assets/UnityMCP" });
             if (guids.Length > 0)
                 return Path.GetFullPath(AssetDatabase.GUIDToAssetPath(guids[0]));
 
-            // Fallback: path trực tiếp
-            var direct = Path.Combine(Application.dataPath, "UnityMCP", "CLAUDE.md");
+            var direct = Path.Combine(Application.dataPath, "UnityMCP", "AI_SKILL.md");
             return File.Exists(direct) ? direct : null;
         }
 
-        private static bool CheckRulesInstalled()
+        private static bool CheckRulesInstalled(IdeType ide)
         {
-            return File.Exists(GetRulesDestFile());
+            return File.Exists(GetRulesDestFile(ide));
         }
 
-        private static void InstallRules()
+        private static void InstallRules(IdeType ide)
         {
             var src = GetRulesSourceFile();
             if (src == null || !File.Exists(src))
             {
-                Debug.LogError("[UnityMCP] Cannot find CLAUDE.md in Assets/UnityMCP/");
+                Debug.LogError("[UnityMCP] Cannot find AI_SKILL.md in Assets/UnityMCP/");
                 return;
             }
 
-            var destDir = GetRulesDestDir();
-            Directory.CreateDirectory(destDir);
+            var dest = GetRulesDestFile(ide);
+            var destDir = Path.GetDirectoryName(dest);
+            if (!Directory.Exists(destDir))
+                Directory.CreateDirectory(destDir);
 
-            File.Copy(src, GetRulesDestFile(), overwrite: true);
-            Debug.Log($"[UnityMCP] Claude rules installed → {GetRulesDestFile()}");
+            File.Copy(src, dest, overwrite: true);
+            Debug.Log($"[UnityMCP] Rules installed → {dest}");
         }
 
-        private static void RemoveRules()
+        private static void RemoveRules(IdeType ide)
         {
-            var dest = GetRulesDestFile();
+            var dest = GetRulesDestFile(ide);
             if (File.Exists(dest))
             {
                 File.Delete(dest);
-                Debug.Log("[UnityMCP] Claude rules removed.");
+                Debug.Log($"[UnityMCP] Rules removed: {dest}");
             }
         }
 

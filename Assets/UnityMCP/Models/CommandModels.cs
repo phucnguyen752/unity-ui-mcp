@@ -133,4 +133,14 @@ namespace UnityMCP.Models
         public string prefab_id;
         public int depth = 5;
     }
+
+    [System.Serializable]
+    public class BuildUiFromJsonParams
+    {
+        public string json_layout;        // optional: inline JSON (if empty, reads from temp_ui.json)
+        public string prefab_name;        // name for the saved prefab
+        public string save_path = "Assets/UI/Prefabs/"; // folder to save .prefab
+        public float target_width = 1080;
+        public float target_height = 1920;
+    }
 }
