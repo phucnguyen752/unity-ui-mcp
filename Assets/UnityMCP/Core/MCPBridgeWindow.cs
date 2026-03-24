@@ -262,14 +262,33 @@ namespace UnityMCP
             return Path.Combine(projectRoot, GetDestFileName(ide));
         }
 
+        /// <summary>
+        /// Returns the absolute path to the package root folder.
+        /// Works both when installed via UPM (Packages/com.phucnguyen752.unity-ui-mcp)
+        /// and when placed directly in Assets/UnityMCP.
+        /// </summary>
+        public static string GetPackageRootPath()
+        {
+            // Try UPM package path first
+            var packagePath = Path.GetFullPath("Packages/com.phucnguyen752.unity-ui-mcp");
+            if (Directory.Exists(packagePath))
+                return packagePath;
+
+            // Fallback: Assets/UnityMCP (local development)
+            var assetsPath = Path.GetFullPath(Path.Combine(Application.dataPath, "UnityMCP"));
+            if (Directory.Exists(assetsPath))
+                return assetsPath;
+
+            return null;
+        }
+
         public static string GetRulesSourceFile()
         {
-            var guids = AssetDatabase.FindAssets("AI_SKILL t:TextAsset", new[] { "Assets/UnityMCP" });
-            if (guids.Length > 0)
-                return Path.GetFullPath(AssetDatabase.GUIDToAssetPath(guids[0]));
+            var root = GetPackageRootPath();
+            if (root == null) return null;
 
-            var direct = Path.Combine(Application.dataPath, "UnityMCP", "AI_SKILL.md");
-            return File.Exists(direct) ? direct : null;
+            var path = Path.Combine(root, "AI_SKILL.md");
+            return File.Exists(path) ? path : null;
         }
 
         private static bool CheckRulesInstalled(IdeType ide)

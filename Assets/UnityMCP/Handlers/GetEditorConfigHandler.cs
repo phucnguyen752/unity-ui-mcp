@@ -28,16 +28,27 @@ namespace UnityMCP.Handlers
                 },
                 output_path = MCPBridgeWindow.OutputPath,
                 vision_json_path = BuildUiFromJsonHandler.VisionJsonPath,
+                sprite_path = GetSpritePath(),
                 sizing_rule = "ALL sizes MUST be analyzed from the reference image. sizeDelta = target_screen × measured_ratio%. DO NOT use any default/example values. Measure each element independently.",
-                workflow = "1) Write JSON layout to vision_json_path  2) Call build_ui_from_json (save_path defaults to output_path)"
+                workflow = "1) Write JSON layout to vision_json_path (project root)  2) Call build_ui_from_json (save_path defaults to output_path). Use sprite_path for rounded corners."
             };
         }
 
         private static void ClearVisionJson()
         {
-            var fullPath = Path.Combine(Application.dataPath, "..", BuildUiFromJsonHandler.VisionJsonPath);
-            if (File.Exists(fullPath))
-                File.WriteAllText(fullPath, "{}");
+            var fullPath = BuildUiFromJsonHandler.GetVisionJsonFullPath();
+            File.WriteAllText(fullPath, "{}");
+        }
+
+        private static string GetSpritePath()
+        {
+            // Check UPM package path first
+            var upmPath = "Packages/com.phucnguyen752.unity-ui-mcp/Sprites/circle-512.png";
+            if (UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(upmPath) != null)
+                return upmPath;
+
+            // Fallback: local Assets path
+            return "Assets/UnityMCP/Sprites/circle-512.png";
         }
 
         private static Vector2 GetGameViewSize()

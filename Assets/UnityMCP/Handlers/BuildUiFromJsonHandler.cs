@@ -17,10 +17,19 @@ namespace UnityMCP.Handlers
     public static class BuildUiFromJsonHandler
     {
         /// <summary>
-        /// Well-known path for the vision JSON file.
+        /// Well-known path for the vision JSON file (relative to project root).
         /// AI writes JSON here, then calls build_ui_from_json to process it.
+        /// Always in the project root (writable), not inside the package (may be immutable).
         /// </summary>
-        public const string VisionJsonPath = "Assets/UnityMCP/vision_json.json";
+        public const string VisionJsonPath = "vision_json.json";
+
+        /// <summary>
+        /// Returns the absolute path to the vision JSON file in the project root.
+        /// </summary>
+        public static string GetVisionJsonFullPath()
+        {
+            return Path.Combine(Application.dataPath, "..", VisionJsonPath);
+        }
 
         public static BuildUiResult Execute(BuildUiFromJsonParams p)
         {
@@ -32,9 +41,9 @@ namespace UnityMCP.Handlers
             }
             else
             {
-                var fullPath = Path.Combine(Application.dataPath, "..", VisionJsonPath);
+                var fullPath = GetVisionJsonFullPath();
                 if (!File.Exists(fullPath))
-                    throw new Exception($"Vision JSON file not found at '{VisionJsonPath}'. Write your JSON layout there first.");
+                    throw new Exception($"Vision JSON file not found at '{VisionJsonPath}' (project root). Write your JSON layout there first.");
 
                 jsonLayout = File.ReadAllText(fullPath);
             }
