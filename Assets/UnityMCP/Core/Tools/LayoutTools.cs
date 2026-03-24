@@ -91,8 +91,16 @@ namespace UnityMCP
                 }
             }
 
-            // TMP text
+            // TMP text — on this element or on Button's Label child
             var tmp = go.GetComponent<TMPro.TextMeshProUGUI>();
+            if (tmp == null)
+            {
+                // Button has a Label child with TMP
+                var label = go.transform.Find("Label");
+                if (label != null)
+                    tmp = label.GetComponent<TMPro.TextMeshProUGUI>();
+            }
+
             if (tmp != null)
             {
                 if (!string.IsNullOrEmpty(node.text)) tmp.text = node.text;
@@ -104,8 +112,27 @@ namespace UnityMCP
                     FontStyle.BoldAndItalic => TMPro.FontStyles.Bold | TMPro.FontStyles.Italic,
                     _                       => TMPro.FontStyles.Normal,
                 };
-                tmp.alignment = TMPro.TextAlignmentOptions.Center;
+
+                // Text color: use textColor if specified, otherwise white for buttons, node.color for text
+                if (node.textColor.HasValue)
+                    tmp.color = node.textColor.Value;
+
+                // Text alignment
+                tmp.alignment = ParseTextAlignment(node.textAlignment);
             }
+        }
+
+        private static TMPro.TextAlignmentOptions ParseTextAlignment(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return TMPro.TextAlignmentOptions.Center;
+            return s.ToLowerInvariant() switch
+            {
+                "left"      => TMPro.TextAlignmentOptions.Left,
+                "center"    => TMPro.TextAlignmentOptions.Center,
+                "right"     => TMPro.TextAlignmentOptions.Right,
+                "justified" => TMPro.TextAlignmentOptions.Justified,
+                _           => TMPro.TextAlignmentOptions.Center,
+            };
         }
     }
 

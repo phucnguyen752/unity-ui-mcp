@@ -94,7 +94,7 @@ namespace UnityMCP.Core
                 ["properties"] = new Dictionary<string, object>
                 {
                     ["prefab_id"] = Prop("string", "ID of the prefab being created"),
-                    ["element_type"] = Prop("string", "UI component type", enumVals: Enum("Panel", "Button", "Text", "Image", "InputField", "ScrollView", "Toggle", "Slider", "Dropdown")),
+                    ["element_type"] = Prop("string", "UI component type. Empty = RectTransform only (no visual)", enumVals: Enum("Empty", "Panel", "Button", "Text", "Image", "InputField", "ScrollView", "Toggle", "Slider", "Dropdown")),
                     ["name"] = Prop("string", "GameObject name in Unity hierarchy"),
                     ["parent_id"] = Prop("string", "element_id of parent. Leave empty = direct child of root"),
                     ["text_content"] = Prop("string", "Text content (for Text, Button, InputField placeholder)")
@@ -248,7 +248,7 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> BuildUiFromJsonTool() => new()
         {
             ["name"] = "build_ui_from_json",
-            ["description"] = "Build complete UI prefab from JSON layout. Reads JSON from Assets/UnityMCP/vision_json.json (written by AI in previous step), builds the full hierarchy, and auto-saves as .prefab. Call get_editor_config first (it clears old JSON), then write new JSON to vision_json.json, then call this tool.",
+            ["description"] = "Build complete UI prefab from JSON layout (NO Canvas wrapper — prefab is placed inside existing Canvas). Reads JSON from vision_json.json in project root. Call get_editor_config first (it clears old JSON), write new JSON to vision_json_path, then call this tool. Root type should be 'Empty' (RectTransform only) with Overlay and DialogPanel as children.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",

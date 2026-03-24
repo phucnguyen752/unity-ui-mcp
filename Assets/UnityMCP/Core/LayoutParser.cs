@@ -5,7 +5,7 @@ using UnityMCP.Core;
 namespace UnityMCP
 {
     // ── Data model ────────────────────────────────────────────
-    public enum UiComponentType { Panel, Button, Image, Text, InputField, ScrollView, Toggle, Slider }
+    public enum UiComponentType { Empty, Panel, Button, Image, Text, InputField, ScrollView, Toggle, Slider }
     public enum LayoutType       { None, Horizontal, Vertical, Grid }
     public enum AnchorPreset
     {
@@ -52,6 +52,8 @@ namespace UnityMCP
         public FontStyle       fontStyle = FontStyle.Normal;
         public string          spritePath = "";
         public float?          ppum      = null;
+        public Color?          textColor = null;
+        public string          textAlignment = "";
         public ComponentNode[] children  = System.Array.Empty<ComponentNode>();
 
         // Grid-layout extras
@@ -95,6 +97,8 @@ namespace UnityMCP
                 color     = ParseColor(obj.GetString("color")),
                 spritePath= obj.GetString("spritePath", ""),
                 ppum      = obj.ContainsKey("ppum") ? obj.GetFloat("ppum") : null,
+                textColor = obj.ContainsKey("textColor") ? (Color?)ParseColor(obj.GetString("textColor")) : null,
+                textAlignment = obj.GetString("textAlignment", ""),
                 padding   = ParsePadding(obj.GetObject("padding")),
                 size      = ParseSize(obj.GetObject("size")),
                 gridColumns = obj.GetInt("gridColumns", 2),

@@ -29,9 +29,8 @@ namespace UnityMCP
                     Undo.SetCurrentGroupName("MCP: Build UI");
                     int undoGroup = Undo.GetCurrentGroup();
 
-                    // Root canvas
-                    _rootGo = CreateCanvas(tree.name, targetResolution);
-                    BuildNode(tree, _rootGo.transform, targetResolution);
+                    // Build root from JSON tree (no Canvas wrapper - prefab is meant to be placed inside an existing Canvas)
+                    _rootGo = BuildRootNode(tree, targetResolution);
 
                     Undo.CollapseUndoOperations(undoGroup);
 
@@ -78,6 +77,40 @@ namespace UnityMCP
             return assetPath;
         }
 
+        // ── Root builder (no Canvas) ─────────────────────────
+        private GameObject BuildRootNode(ComponentNode tree, Vector2 resolution)
+        {
+            // Create a temporary parent so CreateElementTool has something to attach to
+            var tempParent = new GameObject("_TempParent");
+            Undo.RegisterCreatedObjectUndo(tempParent, "Create TempParent");
+            tempParent.AddComponent<RectTransform>();
+
+            // Build the root node using normal flow (same as children)
+            var go = CreateElementTool.Create(tree, tempParent.transform);
+            SetAnchorTool.Apply(go, tree.anchor, resolution);
+            SetSizeTool.Apply(go, tree.size, resolution);
+            SetStyleTool.Apply(go, tree);
+
+            if (tree.position != null && (tree.position.x != 0 || tree.position.y != 0))
+            {
+                var rt = go.GetComponent<RectTransform>();
+                if (rt != null)
+                    rt.anchoredPosition = new Vector2(tree.position.x, tree.position.y);
+            }
+
+            if (tree.layout != LayoutType.None)
+                SetLayoutTool.Apply(go, tree);
+
+            foreach (var child in tree.children)
+                BuildNode(child, go.transform, resolution);
+
+            // Detach from temp parent and clean up
+            go.transform.SetParent(null);
+            Object.DestroyImmediate(tempParent);
+
+            return go;
+        }
+
         // ── Recursive node builder ────────────────────────────
         private void BuildNode(ComponentNode node, Transform parent, Vector2 resolution)
         {
@@ -100,24 +133,6 @@ namespace UnityMCP
 
             foreach (var child in node.children)
                 BuildNode(child, go.transform, resolution);
-        }
-
-        // ── Canvas factory ────────────────────────────────────
-        private static GameObject CreateCanvas(string name, Vector2 resolution)
-        {
-            var go     = new GameObject(name);
-            var canvas = go.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-            var scaler = go.AddComponent<UnityEngine.UI.CanvasScaler>();
-            scaler.uiScaleMode         = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = resolution;
-            scaler.screenMatchMode     = UnityEngine.UI.CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight  = resolution.x > resolution.y ? 1f : 0f; // landscape=width, portrait=height
-
-            go.AddComponent<UnityEngine.UI.GraphicRaycaster>();
-            Undo.RegisterCreatedObjectUndo(go, "Create Canvas");
-            return go;
         }
     }
 }

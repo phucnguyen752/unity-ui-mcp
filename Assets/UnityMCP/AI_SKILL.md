@@ -11,8 +11,9 @@ Unity Editor plugin (MCP Server) that allows AI to create UI prefabs directly in
 
 ### Step 1: Get editor config
 ```
-get_editor_config -> get target_screen (e.g. 1080x1920)
+get_editor_config -> get target_screen, vision_json_path, sprite_path, output_path
 ```
+This also clears old JSON to prevent copying stale data.
 
 ### Step 2: Analyze reference image & calculate sizes
 ```
@@ -37,37 +38,51 @@ fontSize = target_width × font_ratio%
 - SIZE TIP: Do NOT adjust sizes based on bias assumptions. Measure each element independently.
 
 ### Step 3: Write JSON to vision_json.json
-Write the complete UI layout JSON to `Assets/UnityMCP/vision_json.json`.
+Write the complete UI layout JSON to the `vision_json_path` returned by `get_editor_config` (project root).
 
 **JSON Schema:**
 ```json
 {
   "name": "PrefabName",
-  "type": "Panel|Button|Image|Text|InputField|ScrollView|Toggle|Slider",
-  "anchor": "stretch-full|top-left|top-center|top-right|middle-left|middle-center|middle-right|bottom-left|bottom-center|bottom-right|stretch-horizontal|stretch-vertical",
+  "type": "Empty|Panel|Button|Image|Text|InputField|ScrollView|Toggle|Slider",
+  "anchor": "stretch-full|top-left|top-center|...|stretch-horizontal|stretch-vertical",
   "size": { "width": 1080, "height": 1920 },
+  "position": { "x": 0, "y": 0 },
   "color": "#RRGGBBAA",
   "text": "text content",
+  "textColor": "#RRGGBB",
+  "textAlignment": "Left|Center|Right|Justified",
   "fontSize": 32,
-  "fontStyle": "normal|bold|italic|bold-italic",
-  "spritePath": "Assets/UnityMCP/Sprites/circle-512.png",
+  "fontStyle": "Normal|Bold|Italic|BoldItalic",
+  "spritePath": "<sprite_path from get_editor_config>",
   "ppum": 6.25,
   "layout": "None|Horizontal|Vertical|Grid",
   "spacing": 10,
+  "controlChildWidth": false,
+  "controlChildHeight": false,
+  "forceExpandWidth": false,
+  "forceExpandHeight": false,
+  "childAlignment": "MiddleCenter",
   "padding": { "left": 0, "right": 0, "top": 0, "bottom": 0 },
   "children": [ ... ]
 }
 ```
 
+**Type notes:**
+- `Empty`: RectTransform only (no visual component). Use for root container.
+- `Panel`: Image with Sliced type (for rounded corners).
+- `Image`: Simple Image.
+- `Button`: Image + Button component + auto-created Label child with text.
+
 ### Step 4: Call build_ui_from_json
 ```
-build_ui_from_json(prefab_name="MyPopup", save_path="Assets/UI/Prefabs/")
+build_ui_from_json(prefab_name="MyPopup")
 ```
-This reads from `vision_json.json`, builds the full hierarchy with Canvas, and auto-saves as `.prefab`.
+This reads from `vision_json_path`, builds the hierarchy (NO Canvas — prefab goes inside existing Canvas), and auto-saves to output_path.
 
 ## PPUM Formula (Pixels Per Unit Multiplier)
 Every Panel/Button MUST have rounded corners via:
-- `spritePath`: "Assets/UnityMCP/Sprites/circle-512.png"
+- `spritePath`: use the `sprite_path` from `get_editor_config`
 - `ppum`: calculated value
 
 ```
@@ -94,32 +109,35 @@ Step 4: PPUM = 250 / corner_radius_px
 - [ ] Each Panel/Button has spritePath + ppum?
 - [ ] PPUM calculated independently for each element?
 - [ ] Colors, font sizes, font styles set?
-- [ ] Root element is stretch-full?
+- [ ] Root is type "Empty" with stretch-full?
+- [ ] Overlay is separate Image child (not merged into root)?
 - [ ] Container size = n × child + (n-1) × spacing?
 
-## Available Sprites
-- `Assets/UnityMCP/Sprites/circle-512.png` - Circle 512x512, 9-sliced (border 250), for rounded corners
-
-## Standard prefab structure
+## Standard prefab structure (NO Canvas)
 ```json
 {
   "name": "PopupName",
-  "type": "Image",
+  "type": "Empty",
   "anchor": "stretch-full",
-  "color": "#00000099",
   "children": [
+    {
+      "name": "Overlay",
+      "type": "Image",
+      "anchor": "stretch-full",
+      "color": "#00000099"
+    },
     {
       "name": "DialogPanel",
       "type": "Panel",
-      "anchor": "bottom-center",
+      "anchor": "middle-center",
       "size": { "width": 850, "height": 1036 },
       "color": "#FFFFFF",
-      "spritePath": "Assets/UnityMCP/Sprites/circle-512.png",
+      "spritePath": "<sprite_path>",
       "ppum": 6.25,
       "children": [
-        { "name": "TxtTitle", "type": "Text", ... },
-        { "name": "BtnClose", "type": "Button", "ppum": 1.0, ... },
-        { "name": "BtnAction", "type": "Button", "ppum": 3.25, ... }
+        { "name": "TxtTitle", "type": "Text", "..." : "..." },
+        { "name": "BtnClose", "type": "Button", "ppum": 1.0, "..." : "..." },
+        { "name": "BtnAction", "type": "Button", "ppum": 3.25, "..." : "..." }
       ]
     }
   ]

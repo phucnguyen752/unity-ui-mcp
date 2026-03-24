@@ -21,6 +21,7 @@ namespace UnityMCP
 
             switch (node.type)
             {
+                case UiComponentType.Empty:       /* RectTransform only */   break;
                 case UiComponentType.Panel:       SetupPanel(go, node);      break;
                 case UiComponentType.Button:      SetupButton(go, node);     break;
                 case UiComponentType.Image:       SetupImage(go, node);      break;
