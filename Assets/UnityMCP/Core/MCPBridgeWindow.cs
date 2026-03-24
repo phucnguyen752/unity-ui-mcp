@@ -32,6 +32,7 @@ namespace UnityMCP
         public static string OutputPath { get; private set; } = "Assets/UI/Prefabs";
 
         // ── AI Skill status ─────────────────────────────────────────────
+        private const string PREF_SELECTED_IDE = "UnityMCP_SelectedIde";
         public enum IdeType { Cursor, Windsurf, ClaudeDesktop, McpPrompt }
         private IdeType _selectedIde = IdeType.Cursor;
         private bool _rulesInstalled;
@@ -53,6 +54,7 @@ namespace UnityMCP
             _outputPath = EditorPrefs.GetString(PREF_OUTPUT_PATH, "Assets/UI/Prefabs");
             OutputPath = _outputPath;
 
+            _selectedIde = (IdeType)EditorPrefs.GetInt(PREF_SELECTED_IDE, 0);
             _rulesInstalled = CheckRulesInstalled(_selectedIde);
         }
 
@@ -157,30 +159,8 @@ namespace UnityMCP
 
             GUILayout.Space(8);
 
-            // Config hint
-            string configJson =
-                "{\n" +
-                "  \"mcpServers\": {\n" +
-                "    \"unity-ui-mcp\": {\n" +
-                $"      \"serverUrl\": \"http://localhost:{McpHttpServer.Port}/sse\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
-
-            EditorGUILayout.HelpBox($"Config:\n{configJson}", MessageType.Info);
-
-            EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("Copy JSON Config"))
-            {
-                EditorGUIUtility.systemCopyBuffer = configJson;
-                AppendLog("MCP JSON Config copied to clipboard.");
-            }
-            if (GUILayout.Button("Copy SSE URL"))
-            {
-                EditorGUIUtility.systemCopyBuffer = $"http://localhost:{McpHttpServer.Port}/sse";
-                AppendLog("MCP SSE URL copied to clipboard.");
-            }
-            EditorGUILayout.EndHorizontal();
+            // ── MCP Config (.mcp.json) ───────────────────────────────────
+            DrawMcpConfigSection();
 
             GUILayout.Space(8);
             GUILayout.Label("Log", EditorStyles.boldLabel);
@@ -195,13 +175,82 @@ namespace UnityMCP
             Repaint();
         }
 
+        // ── MCP Config (.mcp.json) ───────────────────────────────────────
+
+        private void DrawMcpConfigSection()
+        {
+            GUILayout.Label("MCP Config (.mcp.json)", EditorStyles.boldLabel);
+
+            var mcpJsonPath = GetMcpJsonPath();
+            bool exists = File.Exists(mcpJsonPath);
+
+            if (exists)
+            {
+                var oldBg = GUI.color;
+                GUI.color = Color.green;
+                GUILayout.Label("✓ .mcp.json found in project root", EditorStyles.label);
+                GUI.color = oldBg;
+
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Update .mcp.json", EditorStyles.miniButtonLeft))
+                {
+                    WriteMcpJson(mcpJsonPath);
+                    AppendLog(".mcp.json updated.");
+                }
+                if (GUILayout.Button("Copy SSE URL", EditorStyles.miniButtonRight))
+                {
+                    EditorGUIUtility.systemCopyBuffer = $"http://localhost:{McpHttpServer.Port}/sse";
+                    AppendLog("SSE URL copied to clipboard.");
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    "AI tools (Claude Code, Cursor, etc.) need .mcp.json in the project root to connect to this MCP server.",
+                    MessageType.Warning);
+
+                if (GUILayout.Button("Create .mcp.json", GUILayout.Height(28)))
+                {
+                    WriteMcpJson(mcpJsonPath);
+                    AppendLog(".mcp.json created in project root.");
+                }
+            }
+        }
+
+        private static string GetMcpJsonPath()
+        {
+            var projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            return Path.Combine(projectRoot, ".mcp.json");
+        }
+
+        private static void WriteMcpJson(string path)
+        {
+            var json =
+                "{\n" +
+                "  \"mcpServers\": {\n" +
+                "    \"unity-ui-mcp\": {\n" +
+                $"      \"type\": \"sse\",\n" +
+                $"      \"url\": \"http://localhost:{McpHttpServer.Port}/sse\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+            File.WriteAllText(path, json);
+            Debug.Log($"[UnityMCP] .mcp.json written -> {path}");
+        }
+
         // ── AI Skill Setup ──────────────────────────────────────────────
 
         private void DrawSkillSetupSection()
         {
             GUILayout.Label("AI Skill / Rules Setup", EditorStyles.boldLabel);
 
-            _selectedIde = (IdeType)EditorGUILayout.EnumPopup("Target IDE:", _selectedIde);
+            var newIde = (IdeType)EditorGUILayout.EnumPopup("Target IDE:", _selectedIde);
+            if (newIde != _selectedIde)
+            {
+                _selectedIde = newIde;
+                EditorPrefs.SetInt(PREF_SELECTED_IDE, (int)_selectedIde);
+            }
 
             if (_selectedIde == IdeType.McpPrompt)
             {
@@ -301,7 +350,7 @@ namespace UnityMCP
             var src = GetRulesSourceFile();
             if (src == null || !File.Exists(src))
             {
-                Debug.LogError("[UnityMCP] Cannot find AI_SKILL.md in Assets/UnityMCP/");
+                Debug.LogError("[UnityMCP] Cannot find AI_SKILL.md. Package root: " + (GetPackageRootPath() ?? "not found"));
                 return;
             }
 
