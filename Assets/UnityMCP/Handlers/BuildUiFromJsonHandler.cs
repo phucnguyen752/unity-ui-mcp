@@ -45,7 +45,7 @@ namespace UnityMCP.Handlers
             var tree = LayoutParser.Parse(jsonLayout);
             var dispatcher = new ToolDispatcher();
 
-            var savePath = string.IsNullOrEmpty(p.save_path) ? "Assets/UI/Prefabs/" : p.save_path;
+            var savePath = string.IsNullOrEmpty(p.save_path) ? MCPBridgeWindow.OutputPath : p.save_path;
             var prefabName = string.IsNullOrEmpty(p.prefab_name) ? tree.name : p.prefab_name;
 
             // Fire and forget - will be executed on main thread via EditorApplication.delayCall

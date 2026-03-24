@@ -40,7 +40,7 @@ namespace UnityMCP.Models
     {
         public string prefab_name;
         public string save_path;
-        public string root_type = "Panel"; // "Canvas" = có Canvas root, "Panel"/"Image" = chỉ RectTransform
+        public string root_type = "Panel"; // "Canvas" = has Canvas root, "Panel"/"Image" = RectTransform only
         public string canvas_render_mode = "Overlay";
         public ReferenceResolution reference_resolution;
         public float match_width_or_height = 0.5f;

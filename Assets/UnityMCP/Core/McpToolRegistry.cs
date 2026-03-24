@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace UnityMCP.Core
 {
     /// <summary>
-    /// Định nghĩa MCP tool schemas — tương đương list_tools() trong Python server.py.
-    /// Dùng Dictionary/List thay vì Newtonsoft JObject/JArray.
+    /// MCP tool schema definitions — equivalent to list_tools() in a Python MCP server.
+    /// Uses Dictionary/List instead of Newtonsoft JObject/JArray.
     /// </summary>
     public static class McpToolRegistry
     {
@@ -46,7 +46,7 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> GetEditorConfigTool() => new()
         {
             ["name"] = "get_editor_config",
-            ["description"] = "Lấy cấu hình editor: target screen resolution, game view size. GỌI TOOL NÀY TRƯỚC KHI TẠO UI để biết kích thước thiết kế chuẩn.",
+            ["description"] = "Get editor config: target screen resolution, game view size, output path. CALL THIS BEFORE creating UI to get the design resolution.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
@@ -58,16 +58,16 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> CreatePrefabTool() => new()
         {
             ["name"] = "create_prefab_ui",
-            ["description"] = "Tạo prefab UI mới. PHẢI gọi get_editor_config trước để lấy target_screen, rồi tính sizeDelta = target_screen × ratio%. root_type='Panel' (mặc định) tạo prefab không Canvas. root_type='Canvas' tạo prefab có Canvas riêng.",
+            ["description"] = "Create a new UI prefab. MUST call get_editor_config first to get target_screen, then calculate sizeDelta = target_screen × ratio%. root_type='Panel' (default) creates prefab without Canvas. root_type='Canvas' creates prefab with its own Canvas.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
                 ["properties"] = new Dictionary<string, object>
                 {
-                    ["prefab_name"] = Prop("string", "Tên prefab, VD: RemoveAdsPopup"),
-                    ["save_path"] = Prop("string", "Thư mục lưu prefab trong project, VD: Assets/UI/Prefabs/"),
-                    ["root_type"] = Prop("string", "Loại root: Panel (mặc định, không Canvas), Image, Canvas (có Canvas riêng)", "Panel", Enum("Panel", "Image", "Canvas")),
-                    ["canvas_render_mode"] = Prop("string", "Chỉ dùng khi root_type=Canvas", "Overlay", Enum("Overlay", "Camera", "WorldSpace")),
+                    ["prefab_name"] = Prop("string", "Prefab name, e.g. RemoveAdsPopup"),
+                    ["save_path"] = Prop("string", "Folder to save prefab in project, e.g. Assets/UI/Prefabs/"),
+                    ["root_type"] = Prop("string", "Root type: Panel (default, no Canvas), Image, Canvas (with its own Canvas)", "Panel", Enum("Panel", "Image", "Canvas")),
+                    ["canvas_render_mode"] = Prop("string", "Only used when root_type=Canvas", "Overlay", Enum("Overlay", "Camera", "WorldSpace")),
                     ["reference_resolution"] = new Dictionary<string, object>
                     {
                         ["type"] = "object",
@@ -76,9 +76,9 @@ namespace UnityMCP.Core
                             ["width"] = Prop("number"),
                             ["height"] = Prop("number")
                         },
-                        ["description"] = "Chỉ dùng khi root_type=Canvas. Resolution cho CanvasScaler"
+                        ["description"] = "Only used when root_type=Canvas. Resolution for CanvasScaler"
                     },
-                    ["match_width_or_height"] = Prop("number", "Chỉ dùng khi root_type=Canvas. 0=width, 1=height, 0.5=balanced", 0.5)
+                    ["match_width_or_height"] = Prop("number", "Only used when root_type=Canvas. 0=width, 1=height, 0.5=balanced", 0.5)
                 },
                 ["required"] = Enum("prefab_name", "save_path")
             }
@@ -87,17 +87,17 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> AddElementTool() => new()
         {
             ["name"] = "add_ui_element",
-            ["description"] = "Thêm UI element vào prefab. Trả về element_id để set rect/style tiếp theo.",
+            ["description"] = "Add a UI element to a prefab. Returns element_id for subsequent rect/style calls.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
                 ["properties"] = new Dictionary<string, object>
                 {
-                    ["prefab_id"] = Prop("string", "ID của prefab đang tạo"),
-                    ["element_type"] = Prop("string", "Loại UI component", enumVals: Enum("Panel", "Button", "Text", "Image", "InputField", "ScrollView", "Toggle", "Slider", "Dropdown")),
-                    ["name"] = Prop("string", "Tên GameObject trong Unity hierarchy"),
-                    ["parent_id"] = Prop("string", "element_id của parent. Bỏ trống = con trực tiếp của Canvas"),
-                    ["text_content"] = Prop("string", "Nội dung text (cho Text, Button, InputField placeholder)")
+                    ["prefab_id"] = Prop("string", "ID of the prefab being created"),
+                    ["element_type"] = Prop("string", "UI component type", enumVals: Enum("Panel", "Button", "Text", "Image", "InputField", "ScrollView", "Toggle", "Slider", "Dropdown")),
+                    ["name"] = Prop("string", "GameObject name in Unity hierarchy"),
+                    ["parent_id"] = Prop("string", "element_id of parent. Leave empty = direct child of root"),
+                    ["text_content"] = Prop("string", "Text content (for Text, Button, InputField placeholder)")
                 },
                 ["required"] = Enum("prefab_id", "element_type", "name")
             }
@@ -106,14 +106,14 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> SetRectTransformTool() => new()
         {
             ["name"] = "set_rect_transform",
-            ["description"] = "Đặt anchor, position và size cho RectTransform của element.",
+            ["description"] = "Set anchor, position and size for an element's RectTransform.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
                 ["properties"] = new Dictionary<string, object>
                 {
                     ["element_id"] = Prop("string"),
-                    ["anchor_preset"] = Prop("string", "Anchor preset. full-stretch = fill toàn bộ parent",
+                    ["anchor_preset"] = Prop("string", "Anchor preset. full-stretch = fill entire parent",
                         enumVals: Enum(
                             "top-left", "top-center", "top-right",
                             "middle-left", "middle-center", "middle-right",
@@ -121,14 +121,14 @@ namespace UnityMCP.Core
                             "top-stretch", "middle-stretch", "bottom-stretch",
                             "left-stretch", "center-stretch", "right-stretch",
                             "full-stretch")),
-                    ["pos_x"] = Prop("number", "anchoredPosition.x (px từ anchor)"),
-                    ["pos_y"] = Prop("number", "anchoredPosition.y (px từ anchor)"),
-                    ["width"] = Prop("number", "Chiều rộng (px). Bỏ qua khi dùng stretch ngang"),
-                    ["height"] = Prop("number", "Chiều cao (px). Bỏ qua khi dùng stretch dọc"),
-                    ["offset_left"] = Prop("number", "Offset từ anchor trái (stretch mode)"),
-                    ["offset_right"] = Prop("number", "Offset từ anchor phải (stretch mode)"),
-                    ["offset_top"] = Prop("number", "Offset từ anchor trên (stretch mode)"),
-                    ["offset_bottom"] = Prop("number", "Offset từ anchor dưới (stretch mode)"),
+                    ["pos_x"] = Prop("number", "anchoredPosition.x (px from anchor)"),
+                    ["pos_y"] = Prop("number", "anchoredPosition.y (px from anchor)"),
+                    ["width"] = Prop("number", "Width (px). Ignored when using horizontal stretch"),
+                    ["height"] = Prop("number", "Height (px). Ignored when using vertical stretch"),
+                    ["offset_left"] = Prop("number", "Offset from left anchor (stretch mode)"),
+                    ["offset_right"] = Prop("number", "Offset from right anchor (stretch mode)"),
+                    ["offset_top"] = Prop("number", "Offset from top anchor (stretch mode)"),
+                    ["offset_bottom"] = Prop("number", "Offset from bottom anchor (stretch mode)"),
                     ["pivot_x"] = Prop("number", defaultVal: 0.5),
                     ["pivot_y"] = Prop("number", defaultVal: 0.5)
                 },
@@ -139,7 +139,7 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> SetLayoutGroupTool() => new()
         {
             ["name"] = "set_layout_group",
-            ["description"] = "Gắn HorizontalLayoutGroup / VerticalLayoutGroup / GridLayoutGroup lên element.",
+            ["description"] = "Attach HorizontalLayoutGroup / VerticalLayoutGroup / GridLayoutGroup to an element.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
@@ -161,10 +161,10 @@ namespace UnityMCP.Core
                     ["control_child_height"] = Prop("boolean", defaultVal: false),
                     ["force_expand_width"] = Prop("boolean", defaultVal: true),
                     ["force_expand_height"] = Prop("boolean", defaultVal: false),
-                    ["cell_width"] = Prop("number", "Grid only: chiều rộng mỗi ô"),
-                    ["cell_height"] = Prop("number", "Grid only: chiều cao mỗi ô"),
+                    ["cell_width"] = Prop("number", "Grid only: cell width"),
+                    ["cell_height"] = Prop("number", "Grid only: cell height"),
                     ["constraint"] = Prop("string", "Grid only", enumVals: Enum("Flexible", "FixedColumnCount", "FixedRowCount")),
-                    ["constraint_count"] = Prop("integer", "Grid only: số cột hoặc hàng cố định")
+                    ["constraint_count"] = Prop("integer", "Grid only: fixed column or row count")
                 },
                 ["required"] = Enum("element_id", "layout_type")
             }
@@ -173,20 +173,20 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> SetUiStyleTool() => new()
         {
             ["name"] = "set_ui_style",
-            ["description"] = "Áp dụng màu sắc, font, sprite cho UI element.",
+            ["description"] = "Apply color, font, sprite to a UI element.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
                 ["properties"] = new Dictionary<string, object>
                 {
                     ["element_id"] = Prop("string"),
-                    ["color"] = Prop("string", "Hex RGBA: #RRGGBBAA hoặc #RRGGBB. VD: #FFFFFF80 = trắng 50%"),
-                    ["font_size"] = Prop("integer", "Cỡ chữ (px)"),
+                    ["color"] = Prop("string", "Hex RGBA: #RRGGBBAA or #RRGGBB. e.g. #FFFFFF80 = white 50%"),
+                    ["font_size"] = Prop("integer", "Font size (px)"),
                     ["font_style"] = Prop("string", enumVals: Enum("Normal", "Bold", "Italic", "BoldItalic")),
                     ["text_alignment"] = Prop("string", enumVals: Enum("Left", "Center", "Right", "Justified")),
-                    ["sprite_path"] = Prop("string", "Asset path trong project, VD: Assets/UI/Sprites/button_bg.png"),
+                    ["sprite_path"] = Prop("string", "Asset path in project, e.g. Assets/UI/Sprites/button_bg.png"),
                     ["image_type"] = Prop("string", enumVals: Enum("Simple", "Sliced", "Tiled", "Filled")),
-                    ["pixels_per_unit_multiplier"] = Prop("number", "Pixels Per Unit Multiplier cho Image (Sliced). Giá trị cao = bo góc nhỏ hơn, giá trị thấp = bo góc lớn hơn"),
+                    ["pixels_per_unit_multiplier"] = Prop("number", "Pixels Per Unit Multiplier for Image (Sliced). Higher = smaller corners, lower = larger corners"),
                     ["raycast_target"] = Prop("boolean", defaultVal: true)
                 },
                 ["required"] = Enum("element_id")
@@ -196,7 +196,7 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> SetCanvasScalerTool() => new()
         {
             ["name"] = "set_canvas_scaler",
-            ["description"] = "Cấu hình CanvasScaler riêng (nếu chưa set lúc create_prefab_ui).",
+            ["description"] = "Configure CanvasScaler separately (if not set during create_prefab_ui).",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
@@ -216,14 +216,14 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> SavePrefabTool() => new()
         {
             ["name"] = "save_prefab",
-            ["description"] = "Lưu prefab ra file .prefab. Gọi sau khi đã tạo xong toàn bộ hierarchy.",
+            ["description"] = "Save prefab to a .prefab file. Call after the full hierarchy is created.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
                 ["properties"] = new Dictionary<string, object>
                 {
                     ["prefab_id"] = Prop("string"),
-                    ["overwrite"] = Prop("boolean", "True = ghi đè nếu file đã tồn tại", false)
+                    ["overwrite"] = Prop("boolean", "True = overwrite if file already exists", false)
                 },
                 ["required"] = Enum("prefab_id")
             }
@@ -232,14 +232,14 @@ namespace UnityMCP.Core
         private static Dictionary<string, object> QueryHierarchyTool() => new()
         {
             ["name"] = "query_ui_hierarchy",
-            ["description"] = "Đọc lại cấu trúc hierarchy của prefab để verify sau khi tạo.",
+            ["description"] = "Read back the prefab hierarchy structure to verify after creation.",
             ["inputSchema"] = new Dictionary<string, object>
             {
                 ["type"] = "object",
                 ["properties"] = new Dictionary<string, object>
                 {
                     ["prefab_id"] = Prop("string"),
-                    ["depth"] = Prop("integer", "Số cấp hierarchy trả về", 5)
+                    ["depth"] = Prop("integer", "Number of hierarchy levels to return", 5)
                 },
                 ["required"] = Enum("prefab_id")
             }
@@ -255,7 +255,7 @@ namespace UnityMCP.Core
                 ["properties"] = new Dictionary<string, object>
                 {
                     ["prefab_name"] = Prop("string", "Name for the saved prefab (e.g. RemoveAdsPopup)"),
-                    ["save_path"] = Prop("string", "Folder to save .prefab file (e.g. Assets/UI/Prefabs/)", "Assets/UI/Prefabs/"),
+                    ["save_path"] = Prop("string", "Folder to save .prefab file. Defaults to Output Path set in MCP Bridge window"),
                     ["json_layout"] = Prop("string", "Optional: inline JSON string. If empty, reads from Assets/UnityMCP/vision_json.json"),
                     ["target_width"] = Prop("number", "Design width (e.g. 1080)", 1080),
                     ["target_height"] = Prop("number", "Design height (e.g. 1920)", 1920)

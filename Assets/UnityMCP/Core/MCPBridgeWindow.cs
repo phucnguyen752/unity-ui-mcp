@@ -7,7 +7,7 @@ namespace UnityMCP
 {
     /// <summary>
     /// EditorWindow: Window > MCP Bridge
-    /// Cho phép bật/tắt MCP Server (SSE transport), cấu hình target screen và xem trạng thái.
+    /// Start/stop MCP Server (SSE transport), configure target screen, output path, and view status.
     /// </summary>
     public class MCPBridgeWindow : EditorWindow
     {
@@ -22,9 +22,14 @@ namespace UnityMCP
         private int _targetWidth  = 1080;
         private int _targetHeight = 1920;
 
-        // Expose cho các handler/tool khác đọc
+        // Exposed for handlers/tools to read
         public static int TargetWidth  { get; private set; } = 1080;
         public static int TargetHeight { get; private set; } = 1920;
+
+        // ── Output Path Config ──────────────────────────────────────────
+        private const string PREF_OUTPUT_PATH = "UnityMCP_OutputPath";
+        private string _outputPath = "Assets/UI/Prefabs";
+        public static string OutputPath { get; private set; } = "Assets/UI/Prefabs";
 
         // ── AI Skill status ─────────────────────────────────────────────
         public enum IdeType { Cursor, Windsurf, ClaudeDesktop, McpPrompt }
@@ -35,7 +40,7 @@ namespace UnityMCP
         public static void Open()
         {
             var win = GetWindow<MCPBridgeWindow>("MCP Bridge");
-            win.minSize = new Vector2(320, 460);
+            win.minSize = new Vector2(320, 520);
         }
 
         private void OnEnable()
@@ -44,6 +49,10 @@ namespace UnityMCP
             _targetHeight = EditorPrefs.GetInt(PREF_TARGET_HEIGHT, 1920);
             TargetWidth  = _targetWidth;
             TargetHeight = _targetHeight;
+
+            _outputPath = EditorPrefs.GetString(PREF_OUTPUT_PATH, "Assets/UI/Prefabs");
+            OutputPath = _outputPath;
+
             _rulesInstalled = CheckRulesInstalled(_selectedIde);
         }
 
@@ -88,7 +97,7 @@ namespace UnityMCP
             // ── Target Screen ───────────────────────────────────────────
             GUILayout.Label("Target Screen", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Đặt resolution thiết kế chuẩn. AI sẽ dùng giá trị này để tính toán kích thước UI chính xác.",
+                "Set the design resolution. AI will use this to calculate UI sizes accurately.",
                 MessageType.None);
 
             EditorGUILayout.BeginHorizontal();
@@ -99,7 +108,7 @@ namespace UnityMCP
             _targetHeight = EditorGUILayout.IntField(_targetHeight, GUILayout.Width(80));
             EditorGUILayout.EndHorizontal();
 
-            // Save khi thay đổi
+            // Save on change
             if (_targetWidth != TargetWidth || _targetHeight != TargetHeight)
             {
                 TargetWidth  = _targetWidth;
@@ -110,13 +119,46 @@ namespace UnityMCP
 
             GUILayout.Space(8);
 
+            // ── Output Path ─────────────────────────────────────────────
+            GUILayout.Label("Output Path", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "Folder where built prefabs will be saved.",
+                MessageType.None);
+
+            EditorGUILayout.BeginHorizontal();
+            _outputPath = EditorGUILayout.TextField(_outputPath);
+            if (GUILayout.Button("Browse", GUILayout.Width(60)))
+            {
+                var selected = EditorUtility.OpenFolderPanel("Select Output Folder", _outputPath, "");
+                if (!string.IsNullOrEmpty(selected))
+                {
+                    // Convert absolute path to relative Assets/ path
+                    var dataPath = Path.GetFullPath(Application.dataPath);
+                    var fullSelected = Path.GetFullPath(selected);
+                    if (fullSelected.StartsWith(dataPath))
+                        _outputPath = "Assets" + fullSelected.Substring(dataPath.Length).Replace('\\', '/');
+                    else
+                        _outputPath = fullSelected.Replace('\\', '/');
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            // Save on change
+            if (_outputPath != OutputPath)
+            {
+                OutputPath = _outputPath;
+                EditorPrefs.SetString(PREF_OUTPUT_PATH, _outputPath);
+            }
+
+            GUILayout.Space(8);
+
             // ── AI Skill / Rules Setup ──────────────────────────────────
             DrawSkillSetupSection();
 
             GUILayout.Space(8);
 
             // Config hint
-            string configJson = 
+            string configJson =
                 "{\n" +
                 "  \"mcpServers\": {\n" +
                 "    \"unity-ui-mcp\": {\n" +
@@ -158,12 +200,12 @@ namespace UnityMCP
         private void DrawSkillSetupSection()
         {
             GUILayout.Label("AI Skill / Rules Setup", EditorStyles.boldLabel);
-            
+
             _selectedIde = (IdeType)EditorGUILayout.EnumPopup("Target IDE:", _selectedIde);
 
             if (_selectedIde == IdeType.McpPrompt)
             {
-                EditorGUILayout.HelpBox("Sử dụng giao thức MCP Prompts (unity_ui_expert_skill). Không cần copy file vật lý. IDE sẽ tự yêu cầu skill này thông qua MCP (nếu IDE hỗ trợ).", MessageType.Info);
+                EditorGUILayout.HelpBox("Uses MCP Prompts protocol (unity_ui_expert_skill). No file copy needed. The IDE will request this skill via MCP (if supported).", MessageType.Info);
                 return;
             }
 
@@ -173,7 +215,7 @@ namespace UnityMCP
             {
                 var oldBg = GUI.color;
                 GUI.color = Color.green;
-                GUILayout.Label($"✓ Rules đã cài đặt cho {_selectedIde}", EditorStyles.label);
+                GUILayout.Label($"✓ Rules installed for {_selectedIde}", EditorStyles.label);
                 GUI.color = oldBg;
 
                 EditorGUILayout.BeginHorizontal();
@@ -192,7 +234,7 @@ namespace UnityMCP
             else
             {
                 EditorGUILayout.HelpBox(
-                    $"Cần cài đặt file luật ({GetDestFileName(_selectedIde)}) để AI sinh UI chính xác.",
+                    $"Rules file ({GetDestFileName(_selectedIde)}) is required for AI to generate UI accurately.",
                     MessageType.Warning);
 
                 if (GUILayout.Button($"Install {_selectedIde} Rules", GUILayout.Height(28)))
@@ -250,7 +292,7 @@ namespace UnityMCP
                 Directory.CreateDirectory(destDir);
 
             File.Copy(src, dest, overwrite: true);
-            Debug.Log($"[UnityMCP] Rules installed → {dest}");
+            Debug.Log($"[UnityMCP] Rules installed -> {dest}");
         }
 
         private static void RemoveRules(IdeType ide)
@@ -274,7 +316,7 @@ namespace UnityMCP
 
         private void OnDisable()
         {
-            // Không tự stop khi đóng window — server vẫn chạy
+            // Don't auto-stop when closing window — server keeps running
         }
     }
 }

@@ -10,13 +10,13 @@ namespace UnityMCP.Handlers
     {
         public static object Execute(AddElementParams p)
         {
-            // Xác định parent
+            // Determine parent
             Transform parent = null;
             if (!string.IsNullOrEmpty(p.parent_id))
             {
                 var parentGO = ElementRegistry.GetElement(p.parent_id);
                 if (parentGO == null)
-                    throw new System.Exception($"parent_id '{p.parent_id}' không tồn tại.");
+                    throw new System.Exception($"parent_id '{p.parent_id}' does not exist.");
                 parent = parentGO.transform;
             }
             else if (ElementRegistry.TryGetPrefab(p.prefab_id, out var rootGO, out _))
@@ -25,7 +25,7 @@ namespace UnityMCP.Handlers
             }
             else
             {
-                throw new System.Exception($"prefab_id '{p.prefab_id}' không tồn tại.");
+                throw new System.Exception($"prefab_id '{p.prefab_id}' does not exist.");
             }
 
             GameObject go = p.element_type switch
@@ -39,7 +39,7 @@ namespace UnityMCP.Handlers
                 "Toggle"     => CreateToggle(p.name, parent, p.text_content),
                 "Slider"     => CreateSlider(p.name, parent),
                 "Dropdown"   => CreateDropdown(p.name, parent),
-                _            => throw new System.NotSupportedException($"element_type '{p.element_type}' không được hỗ trợ.")
+                _            => throw new System.NotSupportedException($"element_type '{p.element_type}' is not supported.")
             };
 
             var elemId = ElementRegistry.Register(go);

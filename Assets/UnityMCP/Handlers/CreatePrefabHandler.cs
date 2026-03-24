@@ -27,7 +27,7 @@ namespace UnityMCP.Handlers
         }
 
         /// <summary>
-        /// Tạo prefab với Canvas root (cũ) — dùng khi cần prefab là toàn bộ screen overlay.
+        /// Create prefab with Canvas root (legacy) — used when the prefab needs to be a full screen overlay.
         /// </summary>
         private static object CreateWithCanvas(CreatePrefabParams p, string savePath)
         {
@@ -71,19 +71,19 @@ namespace UnityMCP.Handlers
                 prefab_name = p.prefab_name,
                 save_path  = savePath,
                 root_type  = "Canvas",
-                message    = $"Prefab '{p.prefab_name}' (Canvas root) đã được tạo. Gọi save_prefab khi xong."
+                message    = $"Prefab '{p.prefab_name}' (Canvas root) created. Call save_prefab when done."
             };
         }
 
         /// <summary>
-        /// Tạo prefab KHÔNG CÓ Canvas — chỉ là 1 GameObject + RectTransform + Image.
-        /// Khi drag vào scene sẽ tự nằm dưới Canvas có sẵn.
+        /// Create prefab WITHOUT Canvas — just a GameObject + RectTransform + Image.
+        /// When dragged into the scene, it will automatically be placed under an existing Canvas.
         /// </summary>
         private static object CreateWithoutCanvas(CreatePrefabParams p, string savePath)
         {
             var root = new GameObject(p.prefab_name, typeof(RectTransform));
 
-            // Thêm Image component nếu root_type là Panel hoặc Image
+            // Add Image component if root_type is Panel or Image
             if (p.root_type == "Panel" || p.root_type == "Image")
             {
                 var img = root.AddComponent<Image>();
@@ -92,7 +92,7 @@ namespace UnityMCP.Handlers
                     : Color.white;
             }
 
-            // Set full stretch mặc định
+            // Set full stretch by default
             var rt = root.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
@@ -109,7 +109,7 @@ namespace UnityMCP.Handlers
                 prefab_name = p.prefab_name,
                 save_path  = savePath,
                 root_type  = p.root_type,
-                message    = $"Prefab '{p.prefab_name}' ({p.root_type} root, không Canvas) đã được tạo. Drag vào Canvas có sẵn trong scene. Gọi save_prefab khi xong."
+                message    = $"Prefab '{p.prefab_name}' ({p.root_type} root, no Canvas) created. Drag into an existing Canvas in the scene. Call save_prefab when done."
             };
         }
     }

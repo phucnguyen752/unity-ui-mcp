@@ -8,19 +8,19 @@ using System.Text;
 namespace UnityMCP.Core
 {
     /// <summary>
-    /// Lightweight JSON parser / serializer cho Unity.
-    /// Thay thế Newtonsoft.Json — không cần external dependency.
+    /// Lightweight JSON parser / serializer for Unity.
+    /// Replaces Newtonsoft.Json — no external dependency needed.
     ///
     /// Parse:  object result = MiniJson.Deserialize(jsonString);
     ///   - JSON object  → Dictionary&lt;string, object&gt;
     ///   - JSON array   → List&lt;object&gt;
     ///   - JSON string  → string
-    ///   - JSON number  → double (hoặc long nếu không có dấu chấm)
+    ///   - JSON number  → double (or long if no decimal point)
     ///   - JSON bool    → bool
     ///   - JSON null    → null
     ///
     /// Serialize:  string json = MiniJson.Serialize(obj);
-    ///   - Hỗ trợ Dictionary, List, string, number, bool, null, và nested combinations.
+    ///   - Supports Dictionary, List, string, number, bool, null, and nested combinations.
     /// </summary>
     public static class MiniJson
     {
@@ -51,8 +51,8 @@ namespace UnityMCP.Core
         // ══════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Deserialize JSON string thành object kiểu T bằng reflection.
-        /// Hỗ trợ nullable types (float?, int?), nested objects, và arrays.
+        /// Deserialize JSON string into an object of type T using reflection.
+        /// Supports nullable types (float?, int?), nested objects, and arrays.
         /// </summary>
         public static T DeserializeTo<T>(string json) where T : new()
         {

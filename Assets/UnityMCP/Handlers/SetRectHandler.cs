@@ -9,10 +9,10 @@ namespace UnityMCP.Handlers
         public static object Execute(SetRectParams p)
         {
             var go = ElementRegistry.GetElement(p.element_id)
-                ?? throw new System.Exception($"element_id '{p.element_id}' không tồn tại.");
+                ?? throw new System.Exception($"element_id '{p.element_id}' does not exist.");
 
             var rt = go.GetComponent<RectTransform>()
-                ?? throw new System.Exception($"GameObject '{go.name}' không có RectTransform.");
+                ?? throw new System.Exception($"GameObject '{go.name}' does not have a RectTransform.");
 
             // Pivot
             rt.pivot = new Vector2(p.pivot_x, p.pivot_y);

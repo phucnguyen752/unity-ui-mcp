@@ -6,8 +6,8 @@ using UnityMCP.Models;
 namespace UnityMCP.Core
 {
     /// <summary>
-    /// Nhận raw JSON từ server, parse, gọi handler tương ứng, trả JSON response.
-    /// Chạy trên Unity main thread (an toàn để dùng UnityEngine + UnityEditor API).
+    /// Receives raw JSON from server, parses it, calls the corresponding handler, returns JSON response.
+    /// Runs on Unity main thread (safe to use UnityEngine + UnityEditor API).
     /// </summary>
     public static class CommandDispatcher
     {

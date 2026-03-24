@@ -10,7 +10,7 @@ namespace UnityMCP.Handlers
         public static object Execute(SetLayoutGroupParams p)
         {
             var go = ElementRegistry.GetElement(p.element_id)
-                ?? throw new System.Exception($"element_id '{p.element_id}' không tồn tại.");
+                ?? throw new System.Exception($"element_id '{p.element_id}' does not exist.");
 
             var padding = new RectOffset(
                 (int)p.padding_left,
@@ -77,10 +77,10 @@ namespace UnityMCP.Handlers
                     break;
                 }
                 default:
-                    throw new System.NotSupportedException($"layout_type '{p.layout_type}' không được hỗ trợ.");
+                    throw new System.NotSupportedException($"layout_type '{p.layout_type}' is not supported.");
             }
 
-            // ContentSizeFitter — tự động resize container theo children
+            // ContentSizeFitter — automatically resize container based on children
             var csf = go.GetOrAddComponent<ContentSizeFitter>();
             csf.horizontalFit = p.layout_type == "Vertical"
                 ? ContentSizeFitter.FitMode.Unconstrained

@@ -108,7 +108,7 @@ namespace UnityMCP
                     if (!string.IsNullOrEmpty(text))
                     {
                         text = text.Trim();
-                        // Dọn dẹp markdown code block wrapper nếu có
+                        // Clean up markdown code block wrapper if present
                         if (text.StartsWith("```json"))
                             text = text.Substring(7);
                         else if (text.StartsWith("```"))

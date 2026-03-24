@@ -26,9 +26,10 @@ namespace UnityMCP.Handlers
                     width = (int)gameViewSize.x,
                     height = (int)gameViewSize.y
                 },
+                output_path = MCPBridgeWindow.OutputPath,
                 vision_json_path = BuildUiFromJsonHandler.VisionJsonPath,
                 sizing_rule = "ALL sizes MUST be analyzed from the reference image. sizeDelta = target_screen × measured_ratio%. DO NOT use any default/example values. Measure each element independently.",
-                workflow = "1) Write JSON layout to vision_json_path  2) Call build_ui_from_json"
+                workflow = "1) Write JSON layout to vision_json_path  2) Call build_ui_from_json (save_path defaults to output_path)"
             };
         }
 

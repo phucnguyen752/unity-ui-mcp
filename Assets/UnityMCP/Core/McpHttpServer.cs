@@ -12,9 +12,9 @@ using UnityEngine;
 namespace UnityMCP.Core
 {
     /// <summary>
-    /// MCP Server chạy trực tiếp trong Unity Editor.
-    /// Hỗ trợ SSE transport (GET /sse) + message endpoint (POST /messages).
-    /// Claude Desktop / Claude Code kết nối trực tiếp, không cần Python.
+    /// MCP Server running directly in Unity Editor.
+    /// Supports SSE transport (GET /sse) + message endpoint (POST /messages).
+    /// Claude Desktop / Claude Code connects directly, no Python needed.
     /// </summary>
     public class McpHttpServer
     {
@@ -197,7 +197,7 @@ namespace UnityMCP.Core
             {
                 if (_sessions.Count > 0)
                 {
-                    // Fallback cực mạnh cho mọi lỗi parse session id từ client
+                    // Strong fallback for any session id parsing errors from client
                     var enumerator = _sessions.GetEnumerator();
                     if (enumerator.MoveNext())
                     {
@@ -368,7 +368,7 @@ namespace UnityMCP.Core
                         new Dictionary<string, object>
                         {
                             ["name"] = "unity_ui_expert_skill",
-                            ["description"] = "Bắt buộc đọc prompt này để hiểu rules, workflow, và JSON schema khi làm việc với Unity UI MCP.",
+                            ["description"] = "Required reading to understand rules, workflow, and JSON schema when working with Unity UI MCP.",
                             ["arguments"] = new List<object>()
                         }
                     }
@@ -395,7 +395,7 @@ namespace UnityMCP.Core
                 ["id"] = id,
                 ["result"] = new Dictionary<string, object>
                 {
-                    ["description"] = "Quy tắc dựng UI component cho Unity MCP",
+                    ["description"] = "Rules for building UI components with Unity MCP",
                     ["messages"] = new List<object>
                     {
                         new Dictionary<string, object>

@@ -15,7 +15,7 @@ namespace UnityMCP.Handlers
         public static object Execute(SetStyleParams p)
         {
             var go = ElementRegistry.GetElement(p.element_id)
-                ?? throw new Exception($"element_id '{p.element_id}' không tồn tại.");
+                ?? throw new Exception($"element_id '{p.element_id}' does not exist.");
 
             var changed = new System.Collections.Generic.List<string>();
 
@@ -90,7 +90,7 @@ namespace UnityMCP.Handlers
                     changed.Add($"sprite({p.sprite_path})");
                 }
                 else if (sprite == null)
-                    throw new Exception($"Sprite không tìm thấy tại '{p.sprite_path}'");
+                    throw new Exception($"Sprite not found at '{p.sprite_path}'");
             }
 
             // Raycast target
@@ -106,7 +106,7 @@ namespace UnityMCP.Handlers
         public static object Execute(SetCanvasScalerParams p)
         {
             var go = ElementRegistry.GetElement(p.element_id)
-                ?? throw new Exception($"element_id '{p.element_id}' không tồn tại.");
+                ?? throw new Exception($"element_id '{p.element_id}' does not exist.");
 
             var scaler = go.GetOrAddComponent<CanvasScaler>();
             scaler.uiScaleMode = p.scale_mode switch
@@ -143,9 +143,9 @@ namespace UnityMCP.Handlers
         public static object Execute(SavePrefabParams p)
         {
             if (!ElementRegistry.TryGetPrefab(p.prefab_id, out var root, out var savePath))
-                throw new Exception($"prefab_id '{p.prefab_id}' không tồn tại.");
+                throw new Exception($"prefab_id '{p.prefab_id}' does not exist.");
 
-            // Đảm bảo thư mục tồn tại
+            // Ensure directory exists
             if (!AssetDatabase.IsValidFolder(savePath.TrimEnd('/')))
                 System.IO.Directory.CreateDirectory(
                     System.IO.Path.Combine(Application.dataPath, "..", savePath));
@@ -153,17 +153,17 @@ namespace UnityMCP.Handlers
             var assetPath = $"{savePath}{root.name}.prefab";
 
             if (!p.overwrite && AssetDatabase.LoadAssetAtPath<GameObject>(assetPath) != null)
-                throw new Exception($"Prefab đã tồn tại tại '{assetPath}'. Dùng overwrite: true để ghi đè.");
+                throw new Exception($"Prefab already exists at '{assetPath}'. Use overwrite: true to overwrite.");
 
             var prefabAsset = PrefabUtility.SaveAsPrefabAsset(root, assetPath);
-            UnityEngine.Object.DestroyImmediate(root); // xóa scene object tạm
+            UnityEngine.Object.DestroyImmediate(root); // destroy temporary scene object
             ElementRegistry.RemovePrefab(p.prefab_id);
 
             return new
             {
                 prefab_id  = p.prefab_id,
                 asset_path = assetPath,
-                message    = $"Prefab đã lưu tại '{assetPath}'."
+                message    = $"Prefab saved at '{assetPath}'."
             };
         }
     }
@@ -173,7 +173,7 @@ namespace UnityMCP.Handlers
         public static object Execute(QueryHierarchyParams p)
         {
             if (!ElementRegistry.TryGetPrefab(p.prefab_id, out var root, out _))
-                throw new Exception($"prefab_id '{p.prefab_id}' không tồn tại.");
+                throw new Exception($"prefab_id '{p.prefab_id}' does not exist.");
 
             return new
             {
