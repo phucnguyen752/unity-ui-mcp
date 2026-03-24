@@ -190,12 +190,6 @@ Assets/UnityMCP/
   Handlers/
     GetEditorConfigHandler.cs     - Returns target screen config
     BuildUiFromJsonHandler.cs     - Reads JSON, builds prefab
-  Editor/
-    McpEditorWindow.cs    - Chat UI (optional)
-    IAiApiClient.cs       - AI client interface
-    ClaudeApiClient.cs    - Claude API client
-    GeminiApiClient.cs    - Gemini API client
-    OpenAIApiClient.cs    - OpenAI API client
   Models/
     CommandModels.cs      - Data models
   Sprites/
