@@ -1,11 +1,11 @@
 {
-  "name": "com.phucdn.unity-ui-mcp",
+  "name": "com.phucnguyen752.unity-ui-mcp",
   "version": "1.0.0",
   "displayName": "Unity UI MCP",
   "description": "MCP Server for Unity Editor that allows any AI (Claude, Gemini, ChatGPT) to create UI prefabs directly in Unity via MCP protocol.",
   "unity": "2022.3",
   "author": {
-    "name": "phucdn"
+    "name": "phucnguyen752"
   },
   "dependencies": {
     "com.unity.ugui": "1.0.0"

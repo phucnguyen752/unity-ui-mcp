@@ -26,7 +26,7 @@ Give it a reference screenshot and it builds the full uGUI hierarchy — panels,
 2. Click **+** > **Add package from git URL...**
 3. Paste:
 ```
-https://github.com/phucdn/unity-ui-mcp.git?path=Assets/UnityMCP
+https://github.com/phucnguyen752/unity-ui-mcp.git?path=Assets/UnityMCP
 ```
 
 ### Manual
