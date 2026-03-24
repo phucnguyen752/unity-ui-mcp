@@ -105,6 +105,10 @@ crashlytics_unity_version.xml
 crashlytics_build_id.xml.meta
 crashlytics_unity_version.xml.meta
 
+# Claude Code local settings
+.claude/settings.local.json
+Assets/UnityMCP/.claude/settings.local.json
+
 # Misc
 .DS_Store
 remote_config_data
