@@ -69,7 +69,7 @@ Add this to your AI tool's MCP config:
 }
 ```
 
-Or click **Copy JSON Config** in the MCP Bridge window.
+Or click **Create .mcp.json** in the MCP Bridge window to auto-generate the config file.
 
 ### 3. Install AI Skill (Rules)
 
@@ -105,13 +105,20 @@ The AI will:
 
 ## JSON Layout Format
 
+Prefabs are built **without Canvas** — drag them into an existing Canvas in your scene.
+
 ```json
 {
   "name": "MyPopup",
-  "type": "Image",
+  "type": "Empty",
   "anchor": "stretch-full",
-  "color": "#00000099",
   "children": [
+    {
+      "name": "Overlay",
+      "type": "Image",
+      "anchor": "stretch-full",
+      "color": "#00000099"
+    },
     {
       "name": "DialogPanel",
       "type": "Panel",
@@ -140,7 +147,8 @@ The AI will:
           "spritePath": "Assets/UnityMCP/Sprites/circle-512.png",
           "ppum": 3.25,
           "text": "OK",
-          "fontSize": 40
+          "fontSize": 40,
+          "textColor": "#FFFFFF"
         }
       ]
     }
@@ -152,6 +160,7 @@ The AI will:
 
 | Type | Unity Components |
 |:-----|:----------------|
+| Empty | RectTransform only (no visual) — use for root container |
 | Panel | Image (+ optional LayoutGroup) |
 | Button | Image + Button + Text child |
 | Image | Image |
